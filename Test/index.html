@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>GoalTrack</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #0f0f1a;
+      --surface:     #1a1a2e;
+      --surface2:    #16213e;
+      --accent:      #6c63ff;
+      --accent-soft: #a78bfa;
+      --danger:      #f64f59;
+      --success:     #43e97b;
+      --gold:        #ffd700;
+      --text:        #e8e8f0;
+      --muted:       #8888aa;
+      --radius:      16px;
+      --shadow:      0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+    }
+
+    /* ── Shell ── */
+    #app {
+      width: 100%;
+      max-width: 430px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* ── Screens ── */
+    .screen {
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+      padding: 0 18px 96px;
+      overflow-y: auto;
+    }
+    .screen.active { display: flex; }
+
+    .screen-header {
+      padding: 52px 0 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    .screen-header h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+    .screen-header .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+    .card-title {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 14px;
+    }
+
+    /* ── Streak Hero ── */
+    .streak-hero {
+      background: linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%);
+      border: 1px solid rgba(108,99,255,0.18);
+      border-radius: var(--radius);
+      padding: 28px 20px 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .streak-hero::before {
+      content: '';
+      position: absolute;
+      inset: -50%;
+      background: radial-gradient(circle at 50% 40%, rgba(108,99,255,0.1) 0%, transparent 55%);
+      pointer-events: none;
+    }
+    .hero-emoji   { font-size: 44px; display: block; margin-bottom: 4px; }
+    .hero-number  {
+      font-size: 76px; font-weight: 900; line-height: 1;
+      background: linear-gradient(135deg, var(--accent), var(--accent-soft));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hero-unit    { font-size: 17px; color: var(--muted); margin: 2px 0 14px; }
+    .hero-msg     { font-size: 15px; font-weight: 600; }
+    .hero-sub     { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+    /* ── New-challenge toast ── */
+    #restart-toast {
+      background: rgba(67,233,123,0.12);
+      border: 1px solid rgba(67,233,123,0.3);
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 14px;
+      color: var(--success);
+      text-align: center;
+      display: none;
+      animation: fadeDown 0.4s ease;
+    }
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Check-in Button ── */
+    #checkin-btn {
+      width: 100%;
+      padding: 17px;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 17px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    #checkin-btn:not(:disabled) {
+      background: linear-gradient(135deg, var(--accent), var(--accent-soft));
+      color: #fff;
+      box-shadow: 0 4px 24px rgba(108,99,255,0.4);
+    }
+    #checkin-btn:not(:disabled):active { transform: scale(0.97); }
+    #checkin-btn:disabled {
+      background: var(--surface2);
+      color: var(--success);
+      border: 2px solid rgba(67,233,123,0.4);
+      cursor: default;
+    }
+
+    /* ── Progress ── */
+    .progress-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .progress-labels span:last-child { color: var(--accent); font-weight: 600; }
+    .progress-track { background: var(--surface2); border-radius: 999px; height: 7px; overflow: hidden; }
+    .progress-fill  {
+      height: 100%; border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-soft));
+      transition: width 0.9s cubic-bezier(0.34,1.56,0.64,1);
+    }
+
+    /* ── Stats Row ── */
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .stat-card {
+      background: var(--surface2);
+      border-radius: 12px;
+      padding: 14px 10px;
+      text-align: center;
+    }
+    .stat-value { font-size: 26px; font-weight: 800; }
+    .stat-label { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.3; }
+
+    /* ── Tab Bar ── */
+    #tab-bar {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      max-width: 430px;
+      background: var(--surface);
+      border-top: 1px solid rgba(255,255,255,0.07);
+      display: flex;
+      z-index: 100;
+    }
+    .tab-btn {
+      flex: 1; padding: 10px 0 14px;
+      background: none; border: none;
+      color: var(--muted); cursor: pointer;
+      font-size: 11px;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      transition: color 0.15s;
+    }
+    .tab-btn .icon { font-size: 21px; }
+    .tab-btn.active { color: var(--accent); }
+
+    /* ── Memo Sheet ── */
+    #memo-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 150;
+      display: none; backdrop-filter: blur(4px);
+    }
+    #memo-sheet {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%);
+      width: 100%; max-width: 430px;
+      background: var(--surface);
+      border-radius: 24px 24px 0 0;
+      padding: 20px 20px 40px;
+      z-index: 151;
+      transition: transform 0.35s cubic-bezier(0.34,1.3,0.64,1);
+    }
+    #memo-sheet.open { transform: translateX(-50%) translateY(0); }
+    .sheet-handle {
+      width: 36px; height: 4px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 2px; margin: 0 auto 20px;
+    }
+    .sheet-title  { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+    .sheet-sub    { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+    #memo-input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: var(--text);
+      font-size: 15px;
+      resize: none;
+      min-height: 90px;
+      font-family: inherit;
+    }
+    #memo-input:focus { outline: none; border-color: var(--accent); }
+    .sheet-btns { display: flex; gap: 10px; margin-top: 14px; }
+    .sheet-btn {
+      flex: 1; padding: 13px;
+      border-radius: 12px; border: none;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+    }
+    .sheet-btn-skip {
+      background: var(--surface2);
+      color: var(--muted);
+    }
+    .sheet-btn-save {
+      background: linear-gradient(135deg, var(--accent), var(--accent-soft));
+      color: #fff;
+    }
+
+    /* ── Celebration Overlay ── */
+    #celebration {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.88);
+      z-index: 200;
+      display: none; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 14px;
+      backdrop-filter: blur(8px);
+    }
+    #celebration.show { display: flex; }
+    .cel-emoji  { font-size: 76px; animation: bounce 0.55s ease infinite alternate; }
+    .cel-title  { font-size: 30px; font-weight: 800; text-align: center; padding: 0 20px; }
+    .cel-msg    { font-size: 15px; color: var(--muted); text-align: center; padding: 0 28px; line-height: 1.7; white-space: pre-line; }
+    .cel-close  {
+      margin-top: 6px; padding: 13px 44px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-soft));
+      border: none; border-radius: 999px;
+      color: #fff; font-size: 16px; font-weight: 700; cursor: pointer;
+    }
+    @keyframes bounce {
+      from { transform: translateY(0); }
+      to   { transform: translateY(-10px); }
+    }
+
+    /* ── Confetti ── */
+    .confetti {
+      position: fixed; pointer-events: none; z-index: 250;
+      width: 9px; height: 9px; border-radius: 2px;
+      animation: cffall linear forwards;
+    }
+    @keyframes cffall {
+      0%   { opacity: 1; transform: translateY(-10px) rotate(0deg); }
+      100% { opacity: 0; transform: translateY(100vh) rotate(600deg); }
+    }
+
+    /* ── History Screen ── */
+    .cal-month { font-size: 15px; font-weight: 700; margin-bottom: 14px; }
+    .cal-grid  { display: grid; grid-template-columns: repeat(7,1fr); gap: 5px; }
+    .cal-dh    { text-align: center; font-size: 11px; color: var(--muted); padding: 3px 0; }
+    .cal-day   {
+      aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+      border-radius: 8px; font-size: 12px; font-weight: 500;
+      background: var(--surface2); color: var(--muted);
+      cursor: default; user-select: none;
+      position: relative;
+    }
+    .cal-day.has-memo::after {
+      content: '';
+      position: absolute; bottom: 3px; left: 50%;
+      transform: translateX(-50%);
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: var(--accent-soft);
+    }
+    .cal-day.checked {
+      background: linear-gradient(135deg, var(--accent), var(--accent-soft));
+      color: #fff; font-weight: 700; cursor: pointer;
+    }
+    .cal-day.today   { border: 2px solid var(--accent); }
+    .cal-day.today.checked { border-color: transparent; }
+    .cal-day.empty   { background: transparent; cursor: default; }
+
+    /* Day memo popup */
+    #day-popup {
+      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+      background: var(--surface);
+      border: 1px solid rgba(108,99,255,0.3);
+      border-radius: 14px;
+      padding: 14px 18px;
+      width: calc(100% - 36px);
+      max-width: 394px;
+      z-index: 120;
+      box-shadow: var(--shadow);
+      display: none;
+      animation: slideUp 0.25s ease;
+    }
+    #day-popup.show { display: block; }
+    .popup-date  { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .popup-memo  { font-size: 14px; line-height: 1.6; }
+    .popup-close { float: right; background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; line-height: 1; }
+
+    /* History stats */
+    .rec-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 13px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .rec-item:last-child { border-bottom: none; }
+    .rec-label { font-size: 14px; color: var(--muted); }
+    .rec-value { font-size: 17px; font-weight: 700; }
+
+    /* ── Settings ── */
+    .set-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 12px; }
+    .set-item  {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 13px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .set-item:last-child { border-bottom: none; }
+    .set-item-label { font-size: 15px; }
+    .set-input {
+      background: var(--surface2); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; padding: 6px 12px;
+      color: var(--text); font-size: 14px;
+      width: 180px; text-align: right; font-family: inherit;
+    }
+    .set-input:focus { outline: none; border-color: var(--accent); }
+    .danger-btn {
+      width: 100%; padding: 13px;
+      border: 1px solid rgba(246,79,89,0.35);
+      border-radius: 12px;
+      background: rgba(246,79,89,0.08);
+      color: var(--danger);
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .danger-btn:hover { background: rgba(246,79,89,0.18); }
+    .danger-note { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 14px; }
+
+    /* Shared */
+    @keyframes slideUp {
+      from { opacity:0; transform: translateX(-50%) translateY(12px); }
+      to   { opacity:1; transform: translateX(-50%) translateY(0); }
+    }
+    .screen.active > * { animation: fadeIn 0.25s ease both; }
+    .screen.active > *:nth-child(1) { animation-delay: 0.00s; }
+    .screen.active > *:nth-child(2) { animation-delay: 0.04s; }
+    .screen.active > *:nth-child(3) { animation-delay: 0.08s; }
+    .screen.active > *:nth-child(4) { animation-delay: 0.12s; }
+    .screen.active > *:nth-child(5) { animation-delay: 0.16s; }
+    @keyframes fadeIn {
+      from { opacity:0; transform: translateY(14px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ═══ HOME ═══ -->
+  <div id="screen-home" class="screen active">
+    <div class="screen-header">
+      <div>
+        <h1 id="goal-title">GoalTrack</h1>
+        <div class="sub" id="today-label"></div>
+      </div>
+    </div>
+
+    <div id="restart-toast">🌱 新しいチャレンジ開始！また積み上げよう！</div>
+
+    <div class="streak-hero">
+      <span class="hero-emoji" id="hero-emoji">✨</span>
+      <div class="hero-number" id="hero-num">0</div>
+      <div class="hero-unit">日 連続</div>
+      <div class="hero-msg" id="hero-msg">さあ、今日もはじめよう！</div>
+      <div class="hero-sub" id="hero-sub">最初の一歩が一番大事</div>
+    </div>
+
+    <button id="checkin-btn" onclick="startCheckin()">✅ 今日もやった！</button>
+
+    <div class="card">
+      <div class="progress-labels">
+        <span>次のマイルストーン</span>
+        <span id="milestone-right">3日まであと3日</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="prog-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-value" id="s-streak">0</div>
+        <div class="stat-label">現在の<br>連続日数</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="s-best">0</div>
+        <div class="stat-label">最高<br>記録</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="s-total">0</div>
+        <div class="stat-label">累計<br>日数</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ HISTORY ═══ -->
+  <div id="screen-history" class="screen">
+    <div class="screen-header">
+      <div>
+        <h1>履歴</h1>
+        <div class="sub">過去35日間 ● チェックした日をタップでメモ確認</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="cal-month" id="cal-month"></div>
+      <div class="cal-grid" id="cal-headers"></div>
+      <div style="height:6px"></div>
+      <div class="cal-grid" id="cal-days"></div>
+    </div>
+
+    <div class="card">
+      <div class="rec-item">
+        <span class="rec-label">🔥 現在の連続日数</span>
+        <span class="rec-value" id="h-streak">0日</span>
+      </div>
+      <div class="rec-item">
+        <span class="rec-label">🏆 最高連続記録</span>
+        <span class="rec-value" id="h-best">0日</span>
+      </div>
+      <div class="rec-item">
+        <span class="rec-label">✅ 累計チェック日数</span>
+        <span class="rec-value" id="h-total">0日</span>
+      </div>
+      <div class="rec-item">
+        <span class="rec-label">📅 最終チェック日</span>
+        <span class="rec-value" id="h-last">—</span>
+      </div>
+    </div>
+
+    <div class="card" id="past-card" style="display:none">
+      <div class="card-title">過去の連続記録</div>
+      <div id="past-list"></div>
+    </div>
+  </div>
+
+  <!-- ═══ SETTINGS ═══ -->
+  <div id="screen-settings" class="screen">
+    <div class="screen-header"><h1>設定</h1></div>
+
+    <div class="card">
+      <div class="set-label">目標設定</div>
+      <div class="set-item">
+        <span class="set-item-label">目標名</span>
+        <input class="set-input" id="goal-input" type="text" placeholder="例: 英語学習" maxlength="20">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="set-label">データ管理</div>
+      <p class="danger-note">
+        リセットしても、これまでの努力は消えません。<br>
+        過去の記録はそのまま残ります。
+      </p>
+      <button class="danger-btn" onclick="confirmReset()">🔄 新しいチャレンジを始める</button>
+    </div>
+
+    <div class="card" style="text-align:center; color:var(--muted); font-size:12px; padding:14px;">
+      GoalTrack v2.0（HTML プロトタイプ）<br>
+      データはこのブラウザに保存されます
+    </div>
+  </div>
+
+  <!-- ═══ TAB BAR ═══ -->
+  <div id="tab-bar">
+    <button class="tab-btn active" id="tab-home"     onclick="switchTab('home')">
+      <span class="icon">🏠</span><span>ホーム</span>
+    </button>
+    <button class="tab-btn"        id="tab-history"  onclick="switchTab('history')">
+      <span class="icon">📅</span><span>履歴</span>
+    </button>
+    <button class="tab-btn"        id="tab-settings" onclick="switchTab('settings')">
+      <span class="icon">⚙️</span><span>設定</span>
+    </button>
+  </div>
+</div>
+
+<!-- ═══ MEMO SHEET ═══ -->
+<div id="memo-backdrop" onclick="skipMemo()"></div>
+<div id="memo-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">今日のメモ（任意）</div>
+  <div class="sheet-sub">何をしたか、一言残しておこう</div>
+  <textarea id="memo-input" placeholder="例：英単語50個覚えた、問題集10ページ…" maxlength="200"></textarea>
+  <div class="sheet-btns">
+    <button class="sheet-btn sheet-btn-skip" onclick="skipMemo()">スキップ</button>
+    <button class="sheet-btn sheet-btn-save" onclick="saveMemo()">保存する</button>
+  </div>
+</div>
+
+<!-- ═══ DAY POPUP ═══ -->
+<div id="day-popup">
+  <button class="popup-close" onclick="closeDayPopup()">×</button>
+  <div class="popup-date" id="popup-date"></div>
+  <div class="popup-memo" id="popup-memo"></div>
+</div>
+
+<!-- ═══ CELEBRATION ═══ -->
+<div id="celebration" onclick="closeCel()">
+  <div class="cel-emoji" id="cel-emoji">🎉</div>
+  <div class="cel-title" id="cel-title"></div>
+  <div class="cel-msg"   id="cel-msg"></div>
+  <button class="cel-close" onclick="closeCel()">やったー！</button>
+</div>
+
+<script>
+// ─── Utils ──────────────────────────────────────────────────
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function pad(n) { return String(n).padStart(2,'0'); }
+
+function offsetDate(ds, days) {
+  const d = new Date(ds + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+
+function jpDate(ds) {
+  const d = new Date(ds + 'T00:00:00');
+  const dow = ['日','月','火','水','木','金','土'][d.getDay()];
+  return `${d.getMonth()+1}月${d.getDate()}日（${dow}）`;
+}
+
+function genId() {
+  return Math.random().toString(36).slice(2,10);
+}
+
+// ─── Data ────────────────────────────────────────────────────
+// Goal shape:
+//   { id, name, createdAt, checkins: { 'YYYY-MM-DD': { memo } }, bestStreak, pastStreaks }
+// App shape:
+//   { version:2, goals: [...], activeGoalId }
+
+const STORE = 'goaltrack_v2';
+
+function createGoal(name) {
+  return { id: genId(), name: name || 'GoalTrack', createdAt: todayStr(), checkins: {}, bestStreak: 0, pastStreaks: [] };
+}
+
+function loadApp() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORE) || 'null');
+    if (!raw) return freshApp();
+
+    // migrate v1 → v2
+    if (!raw.version) {
+      const goal = createGoal(raw.goalName || 'GoalTrack');
+      (raw.checkins || []).forEach(d => { goal.checkins[d] = { memo: '' }; });
+      goal.bestStreak  = raw.bestStreak || 0;
+      goal.pastStreaks  = raw.pastStreaks || [];
+      const app = { version: 2, goals: [goal], activeGoalId: goal.id };
+      saveApp(app);
+      return app;
+    }
+    return raw;
+  } catch(e) { return freshApp(); }
+}
+
+function freshApp() {
+  const goal = createGoal('GoalTrack');
+  const app  = { version: 2, goals: [goal], activeGoalId: goal.id };
+  saveApp(app);
+  return app;
+}
+
+function saveApp(app) {
+  localStorage.setItem(STORE, JSON.stringify(app));
+}
+
+function activeGoal() {
+  const app = loadApp();
+  return app.goals.find(g => g.id === app.activeGoalId) || app.goals[0];
+}
+
+function updateGoal(updated) {
+  const app = loadApp();
+  app.goals = app.goals.map(g => g.id === updated.id ? updated : g);
+  saveApp(app);
+}
+
+// ─── Streak Logic ────────────────────────────────────────────
+function calcStreak(checkins) {
+  const dates = Object.keys(checkins).sort().reverse();
+  if (!dates.length) return 0;
+  const t = todayStr(), y = offsetDate(t, -1);
+  if (dates[0] !== t && dates[0] !== y) return 0;
+  let n = 1;
+  for (let i = 1; i < dates.length; i++) {
+    if (dates[i] === offsetDate(dates[i-1], -1)) n++;
+    else break;
+  }
+  return n;
+}
+
+function isStreakBroken(goal) {
+  const dates = Object.keys(goal.checkins).sort();
+  if (!dates.length) return false;
+  const last = dates[dates.length - 1];
+  return last < offsetDate(todayStr(), -1);
+}
+
+const MILESTONES = [3, 7, 30, 100];
+
+const CEL = {
+  3:   { emoji:'⭐', title:'3日連続！すごい！',    msg:'3日間、ちゃんと続けた。\nそれだけで十分すごいことだよ！\n次は7日を目指そう🎯', confetti: 40 },
+  7:   { emoji:'🔥', title:'1週間連続！！',        msg:'7日間も続けたなんて最高すぎる！\n毎日コツコツ積み上げた証拠だね。\nこの調子でいこう！💪', confetti: 60 },
+  30:  { emoji:'🏆', title:'30日達成！！！',        msg:'1ヶ月間、本当によく頑張った！！\n毎日継続するって難しいのに、\nあなたはやりきった！素晴らしい🎊', confetti: 90 },
+  100: { emoji:'🌟', title:'100日連続！！！！！',   msg:'100日！！！！！\nこれはもう習慣が身についた証拠。\nあなたは本物だ。本当におめでとう！！\n🎆🎆🎆🎆🎆', confetti: 150 },
+};
+
+function streakVisual(n) {
+  if (n >= 100) return { emoji:'🌟', msg:'伝説の域に達した！これが本物の継続力！', sub:`${n}日 🎆` };
+  if (n >= 30)  return { emoji:'🏆', msg:'1ヶ月以上継続中！もう習慣になってるね！', sub:`${n}日 — 驚異の継続力！` };
+  if (n >= 7)   return { emoji:'🔥', msg:'1週間以上続いてる！最高すぎる！', sub:`${n}日 — この調子で行こう！` };
+  if (n >= 3)   return { emoji:'⭐', msg:'3日以上継続中！いい感じ！', sub:`${n}日 — 続けることが力になる` };
+  if (n === 0)  return { emoji:'✨', msg:'さあ、今日もはじめよう！', sub:'最初の一歩が一番大事' };
+  return { emoji:'💪', msg:'今日もやり遂げた！えらい！', sub:`${n}日 — 着実に積み上げ中！` };
+}
+
+function nextMilestone(n) {
+  return MILESTONES.find(m => n < m) || null;
+}
+
+// ─── Home UI ────────────────────────────────────────────────
+function updateHome() {
+  const goal   = activeGoal();
+  const streak = calcStreak(goal.checkins);
+  const today  = todayStr();
+  const done   = !!goal.checkins[today];
+  const total  = Object.keys(goal.checkins).length;
+
+  // header
+  document.getElementById('goal-title').textContent = goal.name || 'GoalTrack';
+  const d = new Date();
+  document.getElementById('today-label').textContent =
+    `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日（${'日月火水木金土'[d.getDay()]}）`;
+
+  // hero
+  const v = streakVisual(streak);
+  document.getElementById('hero-emoji').textContent = v.emoji;
+  document.getElementById('hero-num').textContent   = streak;
+  document.getElementById('hero-msg').textContent   = v.msg;
+  document.getElementById('hero-sub').textContent   = v.sub;
+
+  // stats
+  document.getElementById('s-streak').textContent = streak;
+  document.getElementById('s-best').textContent   = goal.bestStreak;
+  document.getElementById('s-total').textContent  = total;
+
+  // button
+  const btn = document.getElementById('checkin-btn');
+  if (done) {
+    btn.textContent = '✅ 今日はチェック済み！おつかれ様！';
+    btn.disabled = true;
+  } else {
+    btn.textContent = '✅ 今日もやった！';
+    btn.disabled = false;
+  }
+
+  // progress
+  const next = nextMilestone(streak);
+  const fill = document.getElementById('prog-fill');
+  const lbl  = document.getElementById('milestone-right');
+  if (!next) {
+    fill.style.width = '100%';
+    lbl.textContent  = '全マイルストーン達成！🌟';
+  } else {
+    const prev = MILESTONES[MILESTONES.indexOf(next) - 1] ?? 0;
+    const pct  = Math.round(((streak - prev) / (next - prev)) * 100);
+    fill.style.width = pct + '%';
+    lbl.textContent  = `${next}日まであと${next - streak}日`;
+  }
+}
+
+// ─── Check-in ────────────────────────────────────────────────
+let _pendingDate = null;
+
+function startCheckin() {
+  const goal  = activeGoal();
+  const today = todayStr();
+  if (goal.checkins[today]) return;
+
+  const prevStreak = calcStreak(goal.checkins);
+
+  // save checkin immediately (memo = '' for now)
+  goal.checkins[today] = { memo: '' };
+  const newStreak = calcStreak(goal.checkins);
+  if (newStreak > goal.bestStreak) goal.bestStreak = newStreak;
+  updateGoal(goal);
+  updateHome();
+
+  _pendingDate = today;
+
+  // show "new challenge" toast if restart
+  const hadBefore = Object.keys(goal.checkins).length > 1;
+  if (prevStreak === 0 && hadBefore) showRestartToast();
+
+  // open memo sheet
+  setTimeout(() => openMemoSheet(), 350);
+
+  // milestone celebration (delay so memo sheet doesn't collide)
+  if (CEL[newStreak]) setTimeout(() => showCel(newStreak), 2200);
+}
+
+function openMemoSheet() {
+  document.getElementById('memo-input').value = '';
+  document.getElementById('memo-backdrop').style.display = 'block';
+  document.getElementById('memo-sheet').classList.add('open');
+  setTimeout(() => document.getElementById('memo-input').focus(), 400);
+}
+
+function closeMemoSheet() {
+  document.getElementById('memo-backdrop').style.display = 'none';
+  document.getElementById('memo-sheet').classList.remove('open');
+}
+
+function skipMemo() {
+  closeMemoSheet();
+  _pendingDate = null;
+}
+
+function saveMemo() {
+  const text = document.getElementById('memo-input').value.trim();
+  if (text && _pendingDate) {
+    const goal = activeGoal();
+    if (goal.checkins[_pendingDate]) {
+      goal.checkins[_pendingDate].memo = text;
+      updateGoal(goal);
+    }
+  }
+  closeMemoSheet();
+  _pendingDate = null;
+}
+
+function showRestartToast() {
+  const el = document.getElementById('restart-toast');
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+
+// ─── Celebration ─────────────────────────────────────────────
+function showCel(streak) {
+  const c = CEL[streak];
+  document.getElementById('cel-emoji').textContent = c.emoji;
+  document.getElementById('cel-title').textContent = c.title;
+  document.getElementById('cel-msg').textContent   = c.msg;
+  document.getElementById('celebration').classList.add('show');
+  spawnConfetti(c.confetti);
+}
+function closeCel() {
+  document.getElementById('celebration').classList.remove('show');
+}
+function spawnConfetti(n) {
+  const colors = ['#6c63ff','#a78bfa','#43e97b','#ffd700','#f64f59','#38bdf8','#fb7185'];
+  for (let i = 0; i < n; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti';
+    el.style.cssText = `
+      left:${Math.random()*100}vw; top:-10px;
+      background:${colors[Math.random()*colors.length|0]};
+      animation-duration:${1.4+Math.random()*2}s;
+      animation-delay:${Math.random()*0.9}s;
+    `;
+    document.body.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+  }
+}
+
+// ─── History UI ──────────────────────────────────────────────
+function updateHistory() {
+  const goal   = activeGoal();
+  const streak = calcStreak(goal.checkins);
+  const total  = Object.keys(goal.checkins).length;
+  const today  = todayStr();
+
+  document.getElementById('h-streak').textContent = streak + '日';
+  document.getElementById('h-best').textContent   = goal.bestStreak + '日';
+  document.getElementById('h-total').textContent  = total + '日';
+
+  const dates = Object.keys(goal.checkins).sort().reverse();
+  document.getElementById('h-last').textContent =
+    dates.length ? jpDate(dates[0]) : '—';
+
+  // calendar: 35 days ending today
+  const DOW = ['日','月','火','水','木','金','土'];
+  document.getElementById('cal-headers').innerHTML =
+    DOW.map(d => `<div class="cal-dh">${d}</div>`).join('');
+
+  const todayD = new Date(today + 'T00:00:00');
+  const startD = new Date(todayD); startD.setDate(startD.getDate() - 34);
+  const dow    = startD.getDay();
+  const d      = new Date(today + 'T00:00:00');
+  document.getElementById('cal-month').textContent =
+    `${d.getFullYear()}年${d.getMonth()+1}月`;
+
+  let html = '<div class="cal-day empty"></div>'.repeat(dow);
+  const cur = new Date(startD);
+  for (let i = 0; i < 35 - dow; i++) {
+    const ds  = `${cur.getFullYear()}-${pad(cur.getMonth()+1)}-${pad(cur.getDate())}`;
+    const isT = ds === today;
+    const isC = !!goal.checkins[ds];
+    const isM = isC && goal.checkins[ds].memo;
+    const cls = ['cal-day', isT?'today':'', isC?'checked':'', isM?'has-memo':''].filter(Boolean).join(' ');
+    const tap = isC ? `onclick="showDayPopup('${ds}')"` : '';
+    html += `<div class="${cls}" ${tap}>${cur.getDate()}</div>`;
+    cur.setDate(cur.getDate() + 1);
+  }
+  document.getElementById('cal-days').innerHTML = html;
+
+  // past streaks
+  if (goal.pastStreaks && goal.pastStreaks.length) {
+    document.getElementById('past-card').style.display = '';
+    document.getElementById('past-list').innerHTML =
+      goal.pastStreaks.slice(-5).reverse().map(s =>
+        `<div class="rec-item">
+          <span class="rec-label">${jpDate(s.start)} 〜 ${jpDate(s.end)}</span>
+          <span class="rec-value">${s.length}日</span>
+        </div>`
+      ).join('');
+  }
+}
+
+// Day popup (memo view)
+function showDayPopup(ds) {
+  const goal = activeGoal();
+  const ci   = goal.checkins[ds];
+  if (!ci) return;
+
+  document.getElementById('popup-date').textContent = jpDate(ds);
+  document.getElementById('popup-memo').textContent = ci.memo || '（メモなし）';
+
+  const el = document.getElementById('day-popup');
+  el.classList.remove('show');
+  void el.offsetWidth; // reflow to restart animation
+  el.classList.add('show');
+}
+function closeDayPopup() {
+  document.getElementById('day-popup').classList.remove('show');
+}
+// tap outside popup to close
+document.addEventListener('click', e => {
+  const popup = document.getElementById('day-popup');
+  if (popup.classList.contains('show') && !popup.contains(e.target) && !e.target.classList.contains('cal-day')) {
+    closeDayPopup();
+  }
+});
+
+// ─── Settings ────────────────────────────────────────────────
+function updateSettings() {
+  document.getElementById('goal-input').value = activeGoal().name || '';
+}
+
+document.getElementById('goal-input').addEventListener('input', function() {
+  const goal = activeGoal();
+  goal.name  = this.value || 'GoalTrack';
+  updateGoal(goal);
+  document.getElementById('goal-title').textContent = goal.name;
+});
+
+function confirmReset() {
+  if (!confirm('新しいチャレンジを始めますか？\n\n現在の連続記録は「過去の記録」として保存されます。')) return;
+  const goal   = activeGoal();
+  const streak = calcStreak(goal.checkins);
+  if (streak > 0) {
+    const dates = Object.keys(goal.checkins).sort();
+    const end   = dates[dates.length - 1];
+    const start = offsetDate(end, -(streak - 1));
+    if (!goal.pastStreaks) goal.pastStreaks = [];
+    goal.pastStreaks.push({ start, end, length: streak });
+  }
+  goal.checkins = {};
+  updateGoal(goal);
+  updateHome();
+  switchTab('home');
+}
+
+// ─── Tabs ────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.getElementById('tab-'    + name).classList.add('active');
+  if (name === 'history')  updateHistory();
+  if (name === 'settings') updateSettings();
+}
+
+// ─── Init ────────────────────────────────────────────────────
+updateHome();
+</script>
+</body>
+</html>
