@@ -1,134 +1,123 @@
-# Goal Track - iOS アプリ実装ガイド
+# Goal Track
 
-## プロジェクト概要
+学習と習慣形成をサポートするアプリ。継続した行動をプロセス重視で褒め、モチベーションを維持する。
 
-このプロジェクトは、学習と習慣形成をサポートする iOS アプリケーションです。ユーザーの達成度や努力を褒めることで、モチベーションを維持し、習慣化を促進します。
+## 現在の状態
+
+| プラットフォーム | パス | 用途 | 状態 |
+|-------------|------|------|------|
+| Web（PC） | `Test/` | Windows PC ブラウザで確認 | ✅ 動作中 |
+| Web（スマホ） | `ForIphone/` | iPhone Safari で確認 | ✅ 動作中 |
+| iOS ネイティブ | `iOS/GoalTrack/` | App Store 配信用 | ⏳ Mac 環境が揃い次第 |
+
+> **開発環境**：Windows PC のため Xcode は使用不可。現在は `Test/` と `ForIphone/` の Web 版が主な動作確認環境。
 
 ## 実装済み機能（Phase 1）
 
-### ✅ 基本的な日々のチェック機能
-- 1タップでチェックイン記録
-- 本日のチェック状態を表示
-- チェック済みボタンは無効化
-
-### ✅ 連続日数カウント機能
-- 自動的に連続日数を計算
-- 最高記録を追跡
-- 総チェック回数をカウント
-
-### ✅ 段階的な褒賞システム
-- 3日：基本的な励まし
-- 7日：より熱い応援メッセージ
-- 30日：かなり盛大なお祝い
-- 100日：大規模なお祝いと特別なビジュアル
-- 各レベルに異なる絵文字とカラーを使用
-
-### ✅ ホーム画面
-- 現在の連続日数をプロミネントに表示
-- 次のマイルストーンまでの日数を表示
-- プログレスバーで進捗を可視化
-- チェックインボタン
-
-### ✅ 履歴画面
-- 過去 30 日間のチェックイン履歴をカレンダー表示
-- 連続日数、最高記録、合計チェック回数を表示
-
-### ✅ データ永続化
-- UserDefaults で自動保存
-- アプリ再起動後もデータ保持
+- ✅ 複数目標管理（目標ピルで切り替え）
+- ✅ 1タップでチェックイン記録
+- ✅ 連続日数カウント（今日または昨日から遡って計算）
+- ✅ 段階的褒賞（3 / 7 / 30 / 100日）＋コンフェッティ
+- ✅ プラン管理（平日・週末・毎日等、テキスト一括インポート対応）
+- ✅ 履歴カレンダー表示（過去30日）
+- ✅ 日本時間 AM 2:00 を1日の区切りとする夜間作業対応
+- ✅ データ永続化（Web: localStorage / iOS: UserDefaults）
+- ✅ v1 → v2 データマイグレーション対応
 
 ## ファイル構造
 
 ```
-iOS/GoalTrack/
-├── Models/
-│   └── DailyCheckIn.swift          # データモデル（チェックイン、ストリーク記録）
-├── Views/
-│   ├── ContentView.swift           # タブビュー（ホーム + 履歴）
-│   └── HomeView.swift              # ホーム画面と祝い画面
-├── ViewModels/
-│   └── GoalViewModel.swift         # ビジネスロジック
-├── Services/
-│   └── DataManager.swift           # データ管理（UserDefaults）
-└── App.swift                        # アプリエントリーポイント
+GoalTrack/
+├── Test/                          # Web プロトタイプ ← 主な動作確認はここ
+│   ├── index.html
+│   ├── app.js
+│   └── styles.css
+├── ForIphone/                     # iPhone 向け Web プロトタイプ（Test と同内容）
+│   ├── index.html
+│   ├── app.js
+│   └── styles.css
+├── iOS/GoalTrack/                 # iOS ネイティブ（SwiftUI）
+│   ├── App.swift
+│   ├── Models/DailyCheckIn.swift
+│   ├── Views/ContentView.swift
+│   ├── Views/HomeView.swift
+│   ├── ViewModels/GoalViewModel.swift
+│   └── Services/DataManager.swift
+├── SETUP_GUIDE.md                 # Xcode セットアップ手順
+├── CLAUDE.md                      # 開発ガイドライン
+└── README.md
 ```
 
-## Xcode での実行方法
+## 実行方法
 
-### 1. プロジェクト作成
-```bash
-# Xcode を開く
-open /Applications/Xcode.app
+### PC（Windows）で確認
+`Test/index.html` をブラウザ（Chrome / Edge 等）でダブルクリックして開く。
+
+### iPhone（Safari）で確認
+`ForIphone/index.html` を iPhone の Safari で開く（ローカルファイルまたは Live Server 等で配信）。
+
+### iOS ネイティブ（将来対応）
+Mac + Xcode が必要なため現時点では不可。[SETUP_GUIDE.md](SETUP_GUIDE.md) に手順を記載済み。
+
+## セキュリティ
+
+Firebase・API キー等の機密情報は `.env` に記述し、`.gitignore` で除外する。
+`.env.example`（値なし）はリポジトリに含めてよい。
+
+## データモデル（Web）
+
+```javascript
+// localStorage キー: goaltrack_v2
+{
+  version: 2,
+  goals: [
+    {
+      id: string,
+      name: string,
+      createdAt: string,
+      checkins: { 'YYYY-MM-DD': { memo: string } },
+      bestStreak: number,
+      pastStreaks: [],
+      plans: []
+    }
+  ],
+  activeGoalId: string
+}
 ```
 
-### 2. 新規プロジェクト作成
-- **File** → **New** → **Project**
-- **iOS** → **App** を選択
-- プロジェクト名：`GoalTrack`
-- 言語：**Swift**
-- ユーザーインターフェイス：**SwiftUI**
+## 褒賞レベル
 
-### 3. ファイルを追加
-上記のファイル構造に従って、各ファイルを対応するフォルダに追加してください。
-
-### 4. ビルド・実行
-```bash
-Xcode 内で：
-- Product → Run （⌘R）
-- iPhone シミュレータで実行
-```
+| 日数 | 絵文字 | confetti数 |
+|-----|--------|-----------|
+| 3日 | ⭐ | 40 |
+| 7日 | 🔥 | 60 |
+| 30日 | 🏆 | 90 |
+| 100日 | 🌟 | 150 |
 
 ## 次のステップ（Phase 2-4）
 
-### Phase 2: 褒賞システム拡張
+### Phase 2
 - [ ] アニメーション・サウンド追加
-- [ ] より詳細なビジュアルフィードバック
-- [ ] ハプティックフィードバック
+- [ ] ハプティックフィードバック（iOS）
 
-### Phase 3: 履歴・統計機能
-- [ ] 週間・月間統計表示
-- [ ] 目標設定機能
-- [ ] 詳細な履歴グラフ
+### Phase 3
+- [ ] 週間・月間統計グラフ
+- [ ] 目標詳細設定
 
-### Phase 4: バックエンド同期・クラウド機能
-- [ ] CloudKit での同期
-- [ ] 複数デバイス間の同期
+### Phase 4
+- [ ] CloudKit / Firebase 同期
+- [ ] 複数デバイス対応
 - [ ] iCloud バックアップ
 
 ## 技術スタック
 
-- **言語**：Swift
-- **UI フレームワーク**：SwiftUI
-- **ストレージ**：UserDefaults（将来的に CoreData へ移行可能）
-- **iOS バージョン**：iOS 14+
-
-## 心理設計の特徴
-
-### 👍 前向きなメッセージ
-- 失敗を責めず「新しいチャレンジの開始」と表現
-- プロセスに焦点を当てた褒め方
-
-### 🎯 段階的な褒賞
-- マイルストーンが明確で、次の目標が見える
-- 各段階で異なる視覚的フィードバック
-
-### 📊 透明な進捗表示
-- 現在地と次のマイルストーンが一目瞭然
-- プログレスバーで進捗を可視化
-
-## 注意事項
-
-- ⚠️ **Git コミット**: 必ず事前に確認してからコミットしてください
-- 🌐 **言語**: インストール時は日本語で確認を行ってください
-
-## ライセンス
-
-MIT License（将来決定）
+| 層 | 技術 |
+|---|------|
+| Web UI | HTML5 / CSS3（ダークテーマ）/ Vanilla JavaScript |
+| Web データ | localStorage（`goaltrack_v2`） |
+| iOS UI | SwiftUI（iOS 14+） |
+| iOS データ | UserDefaults + JSON Codable |
 
 ---
 
-## 開発状況
-
-- **作成日**：2026年4月29日
-- **Phase**：1（基本機能実装完了）
-- **状態**：プロトタイプ完成、Xcode での実行待ち
+**作成日**: 2026年4月29日 / **最終更新**: 2026年4月30日

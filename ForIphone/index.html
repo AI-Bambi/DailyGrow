@@ -218,6 +218,19 @@
   </div>
 </div>
 
+<!-- ═══ WELCOME SHEET ═══ -->
+<div id="welcome-backdrop" class="sheet-backdrop"></div>
+<div id="welcome-sheet" class="bottom-sheet">
+  <div class="sheet-handle"></div>
+  <div class="welcome-emoji">🎯</div>
+  <div class="sheet-title">GoalTrack へようこそ！</div>
+  <div class="sheet-sub">習慣にしたいことを入力してください</div>
+  <input id="welcome-goal-input" type="text" placeholder="例: 筋トレ、読書、資格勉強…" maxlength="20">
+  <div class="sheet-btns">
+    <button class="sheet-btn btn-primary" onclick="confirmFirstGoal()" style="flex:1">はじめる 🚀</button>
+  </div>
+</div>
+
 <!-- ═══ DAY POPUP ═══ -->
 <div id="day-popup">
   <button class="popup-close" onclick="closeDayPopup()">×</button>
