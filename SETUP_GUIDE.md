@@ -1,5 +1,8 @@
 # Goal Track - Xcode セットアップ・実行ガイド
 
+> **現在の状況**：開発者は Windows PC 環境のため、このガイドは **Mac 環境が揃い次第** 参照してください。
+> 現時点での動作確認は `ForIphone/`（iPhone PWA）および `Test/`（PC ブラウザ）で行っています。
+
 ## ⚠️ 前提条件
 
 - **Mac** が必要です（Xcode は macOS でのみ動作）

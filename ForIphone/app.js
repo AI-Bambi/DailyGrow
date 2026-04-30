@@ -31,10 +31,65 @@ function genId() { return Math.random().toString(36).slice(2,10); }
 // App:   { version:2, goals:[...], activeGoalId }
 
 const STORE = 'goaltrack_v2';
+const GOAL_COLORS = ['#f5a623', '#e07060', '#5ab88a', '#9b78d4', '#6899cc', '#c87890'];
 
-function createGoal(name) {
+let _pickedColor = GOAL_COLORS[0];
+
+function getNextColor() {
+  const used = loadApp().goals.filter(g => !g.archived).map(g => g.color);
+  return GOAL_COLORS.find(c => !used.includes(c)) || GOAL_COLORS[0];
+}
+
+function renderColorPicker(containerId, selectedColor) {
+  document.getElementById(containerId).innerHTML = GOAL_COLORS.map(c =>
+    `<button class="color-dot${c === selectedColor ? ' selected' : ''}"
+             style="background:${c}"
+             onclick="pickGoalColor(this,'${containerId}','${c}')"></button>`
+  ).join('');
+}
+
+function pickGoalColor(el, containerId, color) {
+  _pickedColor = color;
+  document.querySelectorAll(`#${containerId} .color-dot`).forEach(d => d.classList.remove('selected'));
+  el.classList.add('selected');
+  const inputMap = { 'add-goal-color-picker': 'add-goal-input', 'welcome-color-picker': 'welcome-goal-input' };
+  const inputId = inputMap[containerId];
+  if (inputId) document.getElementById(inputId).style.borderColor = color;
+}
+
+function createGoal(name, color) {
   return { id: genId(), name: name || '新しい目標', createdAt: todayStr(),
-           checkins: {}, bestStreak: 0, pastStreaks: [], plans: [] };
+           checkins: {}, bestStreak: 0, pastStreaks: [], plans: [],
+           color: color || GOAL_COLORS[0], deadline: null };
+}
+
+function deadlineDaysLeft(ds) {
+  const today    = new Date(todayStr() + 'T00:00:00');
+  const deadline = new Date(ds + 'T00:00:00');
+  return Math.round((deadline - today) / (1000 * 60 * 60 * 24));
+}
+
+function formatDeadlineDateShort(ds) {
+  const d = new Date(ds + 'T00:00:00');
+  return `${d.getMonth()+1}月${d.getDate()}日`;
+}
+
+function onDeadlineChange(context, value) {
+  const displayEl = document.getElementById(`${context}-deadline-display`);
+  const clearBtn  = document.getElementById(`${context}-deadline-clear`);
+  if (value) {
+    displayEl.textContent = formatDeadlineDateShort(value);
+    if (clearBtn) clearBtn.style.display = '';
+  } else {
+    displayEl.textContent = '設定しない';
+    if (clearBtn) clearBtn.style.display = 'none';
+  }
+}
+
+function clearDeadline(context) {
+  const input = document.getElementById(`${context}-deadline`);
+  if (input) input.value = '';
+  onDeadlineChange(context, '');
 }
 
 function loadApp() {
@@ -62,8 +117,9 @@ function saveApp(app) { localStorage.setItem(STORE, JSON.stringify(app)); }
 
 function activeGoal() {
   const app = loadApp();
-  if (!app.goals.length) return null;
-  return app.goals.find(g => g.id === app.activeGoalId) || app.goals[0];
+  const active = app.goals.filter(g => !g.archived);
+  if (!active.length) return null;
+  return active.find(g => g.id === app.activeGoalId) || active[0];
 }
 
 function updateGoal(updated) {
@@ -371,13 +427,19 @@ function nextMilestone(n) { return MILESTONES.find(m => n < m) || null; }
 
 // ─── Goal Pill Tabs ────────────────────────────────────────────
 function renderGoalPills() {
-  const app   = loadApp();
-  const pills = document.getElementById('goal-pills');
-  if (!app.goals.length) { pills.innerHTML = ''; return; }
-  pills.innerHTML = app.goals.map(g =>
-    `<button class="goal-pill${g.id === app.activeGoalId ? ' active' : ''}"
-             onclick="switchGoal('${g.id}')">${escHtml(g.name)}</button>`
-  ).join('') +
+  const app    = loadApp();
+  const active = app.goals.filter(g => !g.archived);
+  const pills  = document.getElementById('goal-pills');
+  if (!active.length) { pills.innerHTML = ''; return; }
+  pills.innerHTML = active.map(g => {
+    const isActive = g.id === app.activeGoalId;
+    const color    = g.color || GOAL_COLORS[0];
+    const styleAttr = isActive
+      ? `style="background:${color};box-shadow:0 2px 12px ${color}55;color:#1c1f24;"`
+      : '';
+    return `<button class="goal-pill${isActive ? ' active' : ''}" ${styleAttr}
+                    onclick="switchGoal('${g.id}')">${escHtml(g.name)}</button>`;
+  }).join('') +
   `<button class="goal-pill-add" onclick="openAddGoalSheet()" title="目標を追加">＋</button>`;
 }
 
@@ -425,6 +487,29 @@ function updateHome() {
     const prev = MILESTONES[MILESTONES.indexOf(next) - 1] ?? 0;
     fill.style.width = Math.round(((streak - prev) / (next - prev)) * 100) + '%';
     lbl.textContent  = `${next}日まであと${next - streak}日`;
+  }
+
+  const deadlineEl = document.getElementById('deadline-display');
+  if (goal.deadline) {
+    const daysLeft = deadlineDaysLeft(goal.deadline);
+    let text, approaching = false;
+    if (daysLeft > 1) {
+      text = `📅 ${formatDeadlineDateShort(goal.deadline)}まで　あと${daysLeft}日`;
+      approaching = daysLeft <= 7;
+    } else if (daysLeft === 1) {
+      text = `📅 ${formatDeadlineDateShort(goal.deadline)}まで　あと1日`;
+      approaching = true;
+    } else if (daysLeft === 0) {
+      text = `📅 今日が期限日！`;
+      approaching = true;
+    } else {
+      text = `📅 ${formatDeadlineDateShort(goal.deadline)}が期限でした`;
+    }
+    deadlineEl.textContent = text;
+    deadlineEl.className = 'deadline-display' + (approaching ? ' approaching' : '');
+    deadlineEl.style.display = '';
+  } else {
+    deadlineEl.style.display = 'none';
   }
 
   renderPlanSection();
@@ -494,7 +579,14 @@ function showRestartToast() {
 
 // ─── Add Goal Sheet ────────────────────────────────────────────
 function openAddGoalSheet() {
+  const next = getNextColor();
+  _pickedColor = next;
   document.getElementById('add-goal-input').value = '';
+  document.getElementById('add-goal-input').style.borderColor = next;
+  document.getElementById('add-goal-deadline').value = '';
+  document.getElementById('add-goal-deadline-display').textContent = '設定しない';
+  document.getElementById('add-goal-deadline-clear').style.display = 'none';
+  renderColorPicker('add-goal-color-picker', next);
   document.getElementById('add-goal-backdrop').style.display = 'block';
   document.getElementById('add-goal-sheet').classList.add('open');
   setTimeout(() => document.getElementById('add-goal-input').focus(), 400);
@@ -506,14 +598,17 @@ function cancelAddGoal() {
 function confirmAddGoal() {
   const name = document.getElementById('add-goal-input').value.trim();
   if (!name) { document.getElementById('add-goal-input').focus(); return; }
-  const app  = loadApp();
-  const goal = createGoal(name);
+  const app      = loadApp();
+  const goal     = createGoal(name, _pickedColor);
+  const deadline = document.getElementById('add-goal-deadline').value;
+  if (deadline) goal.deadline = deadline;
   app.goals.push(goal);
   app.activeGoalId = goal.id;
   saveApp(app);
   cancelAddGoal();
   renderGoalPills();
   updateHome();
+  updateSettings();
   setTimeout(() => {
     const pills = document.getElementById('goal-pills');
     pills.scrollLeft = pills.scrollWidth;
@@ -616,20 +711,39 @@ document.addEventListener('click', e => {
 // ─── Settings UI ───────────────────────────────────────────────
 function updateSettings() {
   renderPlanSettingsList();
-  const app = loadApp();
-  const list = document.getElementById('goal-settings-list');
-  const canDelete = app.goals.length > 1;
+  const app         = loadApp();
+  const activeGoals = app.goals.filter(g => !g.archived);
+  const canDelete   = activeGoals.length > 1;
+  const list        = document.getElementById('goal-settings-list');
 
-  list.innerHTML = app.goals.map(g => `
+  list.innerHTML = activeGoals.map(g => `
     <div class="goal-list-item">
-      <div class="goal-active-dot ${g.id === app.activeGoalId ? '' : 'inactive'}"
-           onclick="switchGoalSettings('${g.id}')" title="この目標を選択" style="cursor:pointer"></div>
-      <input class="goal-name-input" value="${escHtml(g.name)}"
-             onchange="renameGoal('${g.id}', this.value)"
-             placeholder="目標名" maxlength="20">
-      ${canDelete
-        ? `<button class="goal-delete-btn" onclick="deleteGoal('${g.id}')" title="削除">🗑️</button>`
-        : '<div style="width:29px"></div>'}
+      <div class="goal-item-main">
+        <div class="goal-dot-wrap" onclick="switchGoalSettings('${g.id}')" title="この目標を選択">
+          <div class="goal-active-dot ${g.id === app.activeGoalId ? '' : 'inactive'}"
+               style="${g.id === app.activeGoalId ? `background:${g.color}` : ''}"></div>
+        </div>
+        <input class="goal-name-input" value="${escHtml(g.name)}"
+               onchange="renameGoal('${g.id}', this.value)"
+               onfocus="this.style.borderBottomColor='${g.color}'"
+               onblur="this.style.borderBottomColor=''"
+               placeholder="目標名" maxlength="20">
+        <button class="achieve-btn" onclick="achieveGoal('${g.id}')" title="目標達成">🏆</button>
+        ${canDelete
+          ? `<button class="goal-delete-btn" onclick="deleteGoal('${g.id}')" title="削除">🗑️</button>`
+          : '<div style="width:29px"></div>'}
+      </div>
+      <div class="goal-item-deadline">
+        <label class="deadline-inline-label">
+          <span class="deadline-inline-icon">📅</span>
+          <span class="deadline-inline-val">${g.deadline ? formatDeadlineDateShort(g.deadline) : '期限なし'}</span>
+          <input type="date" class="deadline-input-hidden" value="${g.deadline || ''}"
+                 onchange="updateGoalDeadline('${g.id}', this.value)">
+        </label>
+        ${g.deadline
+          ? `<button class="deadline-clear-inline" onclick="updateGoalDeadline('${g.id}', ''); event.stopPropagation()">×</button>`
+          : ''}
+      </div>
     </div>
   `).join('');
 }
@@ -650,6 +764,16 @@ function renameGoal(id, newName) {
   const g    = app.goals.find(g => g.id === id);
   if (g) { g.name = name; saveApp(app); }
   renderGoalPills();
+  updateHome();
+}
+
+function updateGoalDeadline(id, value) {
+  const app = loadApp();
+  const g   = app.goals.find(g => g.id === id);
+  if (!g) return;
+  g.deadline = value || null;
+  saveApp(app);
+  updateSettings();
   updateHome();
 }
 
@@ -693,9 +817,53 @@ function switchTab(name) {
   if (name === 'settings') updateSettings();
 }
 
+// ─── Achievement ───────────────────────────────────────────────
+function achieveGoal(id) {
+  const app = loadApp();
+  const g   = app.goals.find(goal => goal.id === id);
+  if (!g) return;
+  if (!confirm(`「${g.name}」を達成しましたか？\n🏆 記録はそのまま残ります！`)) return;
+  g.archived   = true;
+  g.achievedAt = todayStr();
+  saveApp(app);
+  showAchievementCel(g);
+}
+
+function showAchievementCel(goal) {
+  const total  = Object.keys(goal.checkins).length;
+  const best   = goal.bestStreak;
+  document.getElementById('ach-name').textContent  = goal.name;
+  document.getElementById('ach-stats').textContent =
+    `累計 ${total}日 チェック ／ 最高 ${best}日 連続`;
+  document.getElementById('achievement-cel').classList.add('show');
+  spawnConfetti(150);
+}
+
+function closeAchievementCel() {
+  document.getElementById('achievement-cel').classList.remove('show');
+  const app      = loadApp();
+  const remaining = app.goals.filter(g => !g.archived);
+  if (!remaining.length) {
+    showWelcomeSheet();
+    return;
+  }
+  if (!remaining.find(g => g.id === app.activeGoalId)) {
+    app.activeGoalId = remaining[0].id;
+    saveApp(app);
+  }
+  renderGoalPills();
+  updateHome();
+  updateSettings();
+  switchTab('home');
+}
+
 // ─── Welcome Sheet ─────────────────────────────────────────────
 function showWelcomeSheet() {
+  const next = getNextColor();
+  _pickedColor = next;
   document.getElementById('welcome-goal-input').value = '';
+  document.getElementById('welcome-goal-input').style.borderColor = next;
+  renderColorPicker('welcome-color-picker', next);
   document.getElementById('welcome-backdrop').style.display = 'block';
   document.getElementById('welcome-sheet').classList.add('open');
   setTimeout(() => document.getElementById('welcome-goal-input').focus(), 400);
@@ -705,7 +873,7 @@ function confirmFirstGoal() {
   const name = document.getElementById('welcome-goal-input').value.trim();
   if (!name) { document.getElementById('welcome-goal-input').focus(); return; }
   const app  = loadApp();
-  const goal = createGoal(name);
+  const goal = createGoal(name, _pickedColor);
   app.goals.push(goal);
   app.activeGoalId = goal.id;
   saveApp(app);

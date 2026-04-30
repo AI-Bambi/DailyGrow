@@ -1,5 +1,10 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+html {
+  background: #1c1f24;
+  height: 100%;
+}
+
 :root {
   --bg:          #1c1f24;
   --surface:     #262b32;
@@ -22,25 +27,49 @@ body {
   min-height: 100vh;
   display: flex;
   justify-content: center;
+  overscroll-behavior: none;
 }
 
 #app {
   width: 100%; max-width: 430px;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   display: flex; flex-direction: column;
 }
 
 /* ── Screens ── */
 .screen {
-  display: none; flex-direction: column; gap: 16px;
-  padding: 0 18px calc(96px + env(safe-area-inset-bottom));
-  overflow-y: auto;
+  display: none; flex-direction: column;
+  flex: 1; overflow: hidden;
 }
 .screen.active { display: flex; }
 
+/* ホーム画面はそのまま自身がスクロール */
+#screen-home {
+  gap: 12px;
+  padding: 0 18px calc(88px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+}
+/* プランが増えても streak-hero 等が圧縮されないよう flex-shrink を無効化 */
+#screen-home > * { flex-shrink: 0; }
+
+/* 履歴・設定はヘッダー外のエリアをスクロール */
+.screen-body {
+  flex: 1; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 8px 18px calc(88px + env(safe-area-inset-bottom));
+}
+
 .screen-header {
-  padding: 52px 0 4px;
+  padding: calc(env(safe-area-inset-top) + 16px) 0 4px;
   display: flex; justify-content: space-between; align-items: flex-end;
+}
+
+#screen-history .screen-header,
+#screen-settings .screen-header {
+  flex-shrink: 0;
+  padding: calc(env(safe-area-inset-top) + 16px) 18px 4px;
+  background: var(--bg);
 }
 .screen-header h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
 .screen-header .sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
@@ -63,6 +92,8 @@ body {
   background: var(--bg);
   padding: 8px 0 4px;
   margin: 0 -18px;
+  /* viewport-fit=cover 時にノッチと被らないよう上部を確保 */
+  top: env(safe-area-inset-top);
 }
 .goal-pills {
   display: flex; gap: 8px; align-items: center;
@@ -103,7 +134,7 @@ body {
   background: linear-gradient(150deg, #2c3038 0%, #22262e 100%);
   border: 1px solid rgba(245,166,35,0.28);
   border-radius: var(--radius);
-  padding: 32px 20px 28px; text-align: center;
+  padding: 20px 20px 18px; text-align: center;
   position: relative; overflow: hidden;
   box-shadow: var(--shadow), 0 0 0 1px rgba(245,166,35,0.06);
 }
@@ -114,16 +145,16 @@ body {
   background: radial-gradient(circle, rgba(245,166,35,0.18) 0%, transparent 65%);
   pointer-events: none;
 }
-.hero-emoji  { font-size: 48px; display: block; margin-bottom: 6px; }
+.hero-emoji  { font-size: 38px; display: block; margin-bottom: 4px; }
 .hero-number {
-  font-size: 84px; font-weight: 900; line-height: 1;
+  font-size: 70px; font-weight: 900; line-height: 1;
   background: linear-gradient(135deg, #f5a623 0%, #f8c660 55%, #ffe09a 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   filter: drop-shadow(0 0 20px rgba(245,166,35,0.45));
 }
-.hero-unit   { font-size: 17px; color: var(--muted); margin: 4px 0 16px; letter-spacing: 0.5px; }
-.hero-msg    { font-size: 15px; font-weight: 700; }
-.hero-sub    { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.hero-unit   { font-size: 15px; color: var(--muted); margin: 4px 0 10px; letter-spacing: 0.5px; }
+.hero-msg    { font-size: 14px; font-weight: 700; }
+.hero-sub    { font-size: 11px; color: var(--muted); margin-top: 3px; }
 
 /* ── Restart Toast ── */
 #restart-toast {
@@ -139,8 +170,8 @@ body {
 
 /* ── Check-in Button ── */
 #checkin-btn {
-  width: 100%; padding: 17px; border: none;
-  border-radius: var(--radius); font-size: 17px; font-weight: 700; cursor: pointer;
+  width: 100%; padding: 14px; border: none;
+  border-radius: var(--radius); font-size: 16px; font-weight: 700; cursor: pointer;
   transition: transform 0.15s, box-shadow 0.15s;
 }
 #checkin-btn:not(:disabled) {
@@ -171,11 +202,11 @@ body {
 .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
 .stat-card {
   background: var(--surface2); border-radius: 12px;
-  padding: 16px 10px; text-align: center;
+  padding: 12px 10px; text-align: center;
   border: 1px solid rgba(255,255,255,0.04);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
 }
-.stat-value { font-size: 28px; font-weight: 900; }
+.stat-value { font-size: 24px; font-weight: 900; }
 .stat-card:first-child .stat-value { color: var(--accent); }
 .stat-label { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
 
@@ -272,6 +303,28 @@ body {
   from { transform: translateY(0); } to { transform: translateY(-10px); }
 }
 
+/* ── Achievement Celebration ── */
+#achievement-cel {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 200;
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center; gap: 12px;
+  backdrop-filter: blur(10px);
+}
+#achievement-cel.show { display: flex; }
+.ach-trophy { font-size: 80px; animation: bounce 0.6s ease infinite alternate; }
+.ach-title  { font-size: 34px; font-weight: 900; color: var(--accent); }
+.ach-name   { font-size: 22px; font-weight: 700; text-align: center; padding: 0 24px; }
+.ach-stats  { font-size: 14px; color: var(--muted); text-align: center; }
+.ach-msg    { font-size: 15px; color: var(--text); text-align: center; line-height: 1.8; padding: 0 28px; }
+
+/* ── Achieve Button ── */
+.achieve-btn {
+  background: none; border: none;
+  font-size: 17px; cursor: pointer; padding: 4px;
+  transition: transform 0.15s; flex-shrink: 0;
+}
+.achieve-btn:active { transform: scale(1.3); }
+
 /* ── Confetti ── */
 .confetti {
   position: fixed; pointer-events: none; z-index: 250;
@@ -334,15 +387,39 @@ body {
 .set-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 12px; }
 
 .goal-list-item {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; flex-direction: column; gap: 0;
   padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 .goal-list-item:last-child { border-bottom: none; }
-.goal-active-dot {
-  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
-  background: var(--accent);
+.goal-item-main { display: flex; align-items: center; gap: 4px; }
+.goal-item-deadline {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 0 2px 18px;
 }
-.goal-active-dot.inactive { background: transparent; border: 1.5px solid var(--muted); }
+.deadline-inline-label {
+  display: flex; align-items: center; gap: 5px;
+  cursor: pointer; position: relative; overflow: hidden;
+  flex: 1; padding: 3px 0;
+}
+.deadline-inline-icon { font-size: 12px; }
+.deadline-inline-val  { font-size: 12px; color: var(--muted); }
+.deadline-clear-inline {
+  background: none; border: none;
+  color: var(--muted); font-size: 13px; cursor: pointer;
+  padding: 2px 4px; opacity: 0.7;
+}
+.goal-dot-wrap {
+  width: 28px; height: 28px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.goal-active-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid transparent;
+  pointer-events: none;
+}
+.goal-active-dot.inactive { background: transparent; border: 2px solid var(--muted); }
 .goal-name-input {
   flex: 1; background: transparent; border: none;
   color: var(--text); font-size: 15px; font-family: inherit;
@@ -483,6 +560,20 @@ body {
 }
 #add-plan-input:focus { outline: none; border-color: var(--accent); }
 
+/* ── Goal Color Picker ── */
+.color-picker {
+  display: flex; gap: 10px; margin: 4px 0 14px;
+}
+.color-dot {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 2.5px solid transparent; cursor: pointer; padding: 0;
+  flex-shrink: 0; transition: transform 0.15s, border-color 0.15s;
+}
+.color-dot.selected {
+  border-color: rgba(255,255,255,0.9);
+  transform: scale(1.2);
+}
+
 /* ── Welcome Sheet ── */
 .welcome-emoji { font-size: 52px; text-align: center; margin-bottom: 10px; }
 #welcome-goal-input {
@@ -491,6 +582,41 @@ body {
   padding: 14px; color: var(--text); font-size: 16px; font-family: inherit;
 }
 #welcome-goal-input:focus { outline: none; border-color: var(--accent); }
+
+/* ── Deadline Picker (Add Goal Sheet) ── */
+.deadline-row {
+  display: flex; align-items: center; gap: 8px; margin: 4px 0 14px;
+}
+.deadline-picker-label {
+  display: flex; align-items: center; gap: 10px; flex: 1;
+  background: var(--surface2); border-radius: 10px;
+  padding: 10px 14px; cursor: pointer; position: relative; overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.deadline-picker-label:active { opacity: 0.75; }
+.deadline-label-text    { font-size: 13px; color: var(--muted); flex-shrink: 0; }
+.deadline-value-display { font-size: 14px; font-weight: 600; flex: 1; color: var(--text); }
+.deadline-input-hidden  {
+  position: absolute; inset: 0; opacity: 0;
+  width: 100%; height: 100%; cursor: pointer;
+}
+.deadline-clear-btn {
+  background: var(--surface2); border: 1px solid rgba(255,255,255,0.08);
+  color: var(--muted); font-size: 16px; border-radius: 8px;
+  width: 38px; height: 42px; cursor: pointer; flex-shrink: 0;
+}
+
+/* ── Deadline Display (Home Screen) ── */
+.deadline-display {
+  text-align: center; font-size: 13px; color: var(--muted);
+  padding: 10px 16px; background: rgba(255,255,255,0.03);
+  border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);
+}
+.deadline-display.approaching {
+  color: var(--accent-soft);
+  background: rgba(245,166,35,0.06);
+  border-color: rgba(245,166,35,0.2);
+}
 
 /* ── Animations ── */
 .screen.active > * { animation: fadeIn 0.25s ease both; }
