@@ -719,9 +719,10 @@ function updateSettings() {
   list.innerHTML = activeGoals.map(g => `
     <div class="goal-list-item">
       <div class="goal-item-main">
-        <div class="goal-active-dot ${g.id === app.activeGoalId ? '' : 'inactive'}"
-             onclick="switchGoalSettings('${g.id}')" title="この目標を選択"
-             style="cursor:pointer;${g.id === app.activeGoalId ? `background:${g.color}` : ''}"></div>
+        <div class="goal-dot-wrap" onclick="switchGoalSettings('${g.id}')" title="この目標を選択">
+          <div class="goal-active-dot ${g.id === app.activeGoalId ? '' : 'inactive'}"
+               style="${g.id === app.activeGoalId ? `background:${g.color}` : ''}"></div>
+        </div>
         <input class="goal-name-input" value="${escHtml(g.name)}"
                onchange="renameGoal('${g.id}', this.value)"
                onfocus="this.style.borderBottomColor='${g.color}'"
