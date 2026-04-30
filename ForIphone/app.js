@@ -54,8 +54,7 @@ function loadApp() {
 }
 
 function freshApp() {
-  const g = createGoal('GoalTrack');
-  const app = { version: 2, goals: [g], activeGoalId: g.id };
+  const app = { version: 2, goals: [], activeGoalId: null };
   saveApp(app); return app;
 }
 
@@ -63,6 +62,7 @@ function saveApp(app) { localStorage.setItem(STORE, JSON.stringify(app)); }
 
 function activeGoal() {
   const app = loadApp();
+  if (!app.goals.length) return null;
   return app.goals.find(g => g.id === app.activeGoalId) || app.goals[0];
 }
 
@@ -118,8 +118,9 @@ function checkedPlanIds(goal) {
 
 function renderPlanSection() {
   const goal  = activeGoal();
-  const plans = todayPlans(goal);
   const sec   = document.getElementById('plan-section');
+  if (!goal) { sec.innerHTML = ''; return; }
+  const plans = todayPlans(goal);
   if (!plans.length) { sec.innerHTML = ''; return; }
 
   const checked  = checkedPlanIds(goal);
@@ -180,17 +181,40 @@ function checkAllPlansDone() {
   setTimeout(() => { el.style.display = 'none'; el.classList.remove('toast-show'); }, 4000);
 }
 
+function copyToClipboard(text, onSuccess) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(onSuccess).catch(() => {
+      copyFallback(text, onSuccess);
+    });
+  } else {
+    copyFallback(text, onSuccess);
+  }
+}
+
+function copyFallback(text, onSuccess) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  try {
+    document.execCommand('copy');
+    onSuccess();
+  } catch(e) {
+    alert('コピーに失敗しました。手動でコピーしてください。');
+  }
+  document.body.removeChild(ta);
+}
+
 function copyBlankTemplate() {
   const template = '今日: \n明日: \n今週: \n平日: \n週末: \n今月: \n毎日: ';
-  navigator.clipboard.writeText(template)
-    .then(() => {
-      const btns = document.querySelectorAll('#plan-text-mode .copy-template-btn');
-      const btn  = btns[0];
-      const orig = btn.textContent;
-      btn.textContent = '✅ コピーしました！';
-      setTimeout(() => { btn.textContent = orig; }, 2000);
-    })
-    .catch(() => alert('コピーに失敗しました'));
+  copyToClipboard(template, () => {
+    const btns = document.querySelectorAll('#plan-text-mode .copy-template-btn');
+    const btn  = btns[0];
+    const orig = btn.textContent;
+    btn.textContent = '✅ コピーしました！';
+    setTimeout(() => { btn.textContent = orig; }, 2000);
+  });
 }
 
 function copyPlanTemplate() {
@@ -203,14 +227,12 @@ function copyPlanTemplate() {
     alert('コピーできるプランがありません\n（今日・明日の一回限りプランはコピー対象外です）');
     return;
   }
-  navigator.clipboard.writeText(lines.join('\n'))
-    .then(() => {
-      const btn = document.querySelector('.copy-template-btn');
-      const orig = btn.textContent;
-      btn.textContent = '✅ コピーしました！';
-      setTimeout(() => { btn.textContent = orig; }, 2000);
-    })
-    .catch(() => alert('コピーに失敗しました'));
+  copyToClipboard(lines.join('\n'), () => {
+    const btn = document.querySelector('.copy-template-btn');
+    const orig = btn.textContent;
+    btn.textContent = '✅ コピーしました！';
+    setTimeout(() => { btn.textContent = orig; }, 2000);
+  });
 }
 
 // ─── Plan Settings ─────────────────────────────────────────────
@@ -351,6 +373,7 @@ function nextMilestone(n) { return MILESTONES.find(m => n < m) || null; }
 function renderGoalPills() {
   const app   = loadApp();
   const pills = document.getElementById('goal-pills');
+  if (!app.goals.length) { pills.innerHTML = ''; return; }
   pills.innerHTML = app.goals.map(g =>
     `<button class="goal-pill${g.id === app.activeGoalId ? ' active' : ''}"
              onclick="switchGoal('${g.id}')">${escHtml(g.name)}</button>`
@@ -368,6 +391,7 @@ function switchGoal(id) {
 // ─── Home UI ──────────────────────────────────────────────────
 function updateHome() {
   const goal   = activeGoal();
+  if (!goal) return;
   const streak = calcStreak(goal.checkins);
   const today  = todayStr();
   const done   = !!goal.checkins[today];
@@ -669,6 +693,28 @@ function switchTab(name) {
   if (name === 'settings') updateSettings();
 }
 
+// ─── Welcome Sheet ─────────────────────────────────────────────
+function showWelcomeSheet() {
+  document.getElementById('welcome-goal-input').value = '';
+  document.getElementById('welcome-backdrop').style.display = 'block';
+  document.getElementById('welcome-sheet').classList.add('open');
+  setTimeout(() => document.getElementById('welcome-goal-input').focus(), 400);
+}
+
+function confirmFirstGoal() {
+  const name = document.getElementById('welcome-goal-input').value.trim();
+  if (!name) { document.getElementById('welcome-goal-input').focus(); return; }
+  const app  = loadApp();
+  const goal = createGoal(name);
+  app.goals.push(goal);
+  app.activeGoalId = goal.id;
+  saveApp(app);
+  document.getElementById('welcome-backdrop').style.display = 'none';
+  document.getElementById('welcome-sheet').classList.remove('open');
+  renderGoalPills();
+  updateHome();
+}
+
 // ─── Init ──────────────────────────────────────────────────────
 document.getElementById('add-goal-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') confirmAddGoal();
@@ -676,6 +722,10 @@ document.getElementById('add-goal-input').addEventListener('keydown', e => {
 document.getElementById('add-plan-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') confirmAddPlan();
 });
+document.getElementById('welcome-goal-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') confirmFirstGoal();
+});
 
 renderGoalPills();
 updateHome();
+if (loadApp().goals.length === 0) showWelcomeSheet();

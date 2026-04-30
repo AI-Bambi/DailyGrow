@@ -1,0 +1,30 @@
+# 機密情報
+.env
+.env.local
+.env.*.local
+
+# Xcode 生成ファイル
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+DerivedData/
+build/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+
+# CocoaPods（将来使用する場合）
+Pods/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Node.js（将来バックエンドを追加する場合）
+node_modules/
+npm-debug.log*
