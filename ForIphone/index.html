@@ -36,6 +36,8 @@
       <div class="hero-sub" id="hero-sub">最初の一歩が一番大事</div>
     </div>
 
+    <div id="deadline-display" class="deadline-display" style="display:none"></div>
+
     <button id="checkin-btn" onclick="startCheckin()">✅ 今日もやった！</button>
 
     <div id="plan-section"></div>
@@ -219,6 +221,17 @@
   <div class="sheet-sub">何を習慣化したいですか？</div>
   <div class="color-picker" id="add-goal-color-picker"></div>
   <input id="add-goal-input" type="text" placeholder="例: 筋トレ、読書、瞑想…" maxlength="20">
+  <div class="deadline-row">
+    <label class="deadline-picker-label">
+      <span class="deadline-label-text">📅 期限（任意）</span>
+      <span class="deadline-value-display" id="add-goal-deadline-display">設定しない</span>
+      <input type="date" id="add-goal-deadline" class="deadline-input-hidden"
+             onchange="onDeadlineChange('add-goal', this.value)">
+    </label>
+    <button class="deadline-clear-btn" id="add-goal-deadline-clear"
+            onclick="clearDeadline('add-goal'); event.stopPropagation()"
+            style="display:none">×</button>
+  </div>
   <div class="sheet-btns">
     <button class="sheet-btn btn-secondary" onclick="cancelAddGoal()">キャンセル</button>
     <button class="sheet-btn btn-primary"   onclick="confirmAddGoal()">追加する</button>

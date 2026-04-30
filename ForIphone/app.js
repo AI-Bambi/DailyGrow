@@ -60,7 +60,36 @@ function pickGoalColor(el, containerId, color) {
 function createGoal(name, color) {
   return { id: genId(), name: name || '新しい目標', createdAt: todayStr(),
            checkins: {}, bestStreak: 0, pastStreaks: [], plans: [],
-           color: color || GOAL_COLORS[0] };
+           color: color || GOAL_COLORS[0], deadline: null };
+}
+
+function deadlineDaysLeft(ds) {
+  const today    = new Date(todayStr() + 'T00:00:00');
+  const deadline = new Date(ds + 'T00:00:00');
+  return Math.round((deadline - today) / (1000 * 60 * 60 * 24));
+}
+
+function formatDeadlineDateShort(ds) {
+  const d = new Date(ds + 'T00:00:00');
+  return `${d.getMonth()+1}月${d.getDate()}日`;
+}
+
+function onDeadlineChange(context, value) {
+  const displayEl = document.getElementById(`${context}-deadline-display`);
+  const clearBtn  = document.getElementById(`${context}-deadline-clear`);
+  if (value) {
+    displayEl.textContent = formatDeadlineDateShort(value);
+    if (clearBtn) clearBtn.style.display = '';
+  } else {
+    displayEl.textContent = '設定しない';
+    if (clearBtn) clearBtn.style.display = 'none';
+  }
+}
+
+function clearDeadline(context) {
+  const input = document.getElementById(`${context}-deadline`);
+  if (input) input.value = '';
+  onDeadlineChange(context, '');
 }
 
 function loadApp() {
@@ -460,6 +489,29 @@ function updateHome() {
     lbl.textContent  = `${next}日まであと${next - streak}日`;
   }
 
+  const deadlineEl = document.getElementById('deadline-display');
+  if (goal.deadline) {
+    const daysLeft = deadlineDaysLeft(goal.deadline);
+    let text, approaching = false;
+    if (daysLeft > 1) {
+      text = `📅 ${formatDeadlineDateShort(goal.deadline)}まで　あと${daysLeft}日`;
+      approaching = daysLeft <= 7;
+    } else if (daysLeft === 1) {
+      text = `📅 ${formatDeadlineDateShort(goal.deadline)}まで　あと1日`;
+      approaching = true;
+    } else if (daysLeft === 0) {
+      text = `📅 今日が期限日！`;
+      approaching = true;
+    } else {
+      text = `📅 ${formatDeadlineDateShort(goal.deadline)}が期限でした`;
+    }
+    deadlineEl.textContent = text;
+    deadlineEl.className = 'deadline-display' + (approaching ? ' approaching' : '');
+    deadlineEl.style.display = '';
+  } else {
+    deadlineEl.style.display = 'none';
+  }
+
   renderPlanSection();
 }
 
@@ -531,6 +583,9 @@ function openAddGoalSheet() {
   _pickedColor = next;
   document.getElementById('add-goal-input').value = '';
   document.getElementById('add-goal-input').style.borderColor = next;
+  document.getElementById('add-goal-deadline').value = '';
+  document.getElementById('add-goal-deadline-display').textContent = '設定しない';
+  document.getElementById('add-goal-deadline-clear').style.display = 'none';
   renderColorPicker('add-goal-color-picker', next);
   document.getElementById('add-goal-backdrop').style.display = 'block';
   document.getElementById('add-goal-sheet').classList.add('open');
@@ -543,8 +598,10 @@ function cancelAddGoal() {
 function confirmAddGoal() {
   const name = document.getElementById('add-goal-input').value.trim();
   if (!name) { document.getElementById('add-goal-input').focus(); return; }
-  const app  = loadApp();
-  const goal = createGoal(name, _pickedColor);
+  const app      = loadApp();
+  const goal     = createGoal(name, _pickedColor);
+  const deadline = document.getElementById('add-goal-deadline').value;
+  if (deadline) goal.deadline = deadline;
   app.goals.push(goal);
   app.activeGoalId = goal.id;
   saveApp(app);
@@ -661,15 +718,31 @@ function updateSettings() {
 
   list.innerHTML = activeGoals.map(g => `
     <div class="goal-list-item">
-      <div class="goal-active-dot ${g.id === app.activeGoalId ? '' : 'inactive'}"
-           onclick="switchGoalSettings('${g.id}')" title="この目標を選択" style="cursor:pointer"></div>
-      <input class="goal-name-input" value="${escHtml(g.name)}"
-             onchange="renameGoal('${g.id}', this.value)"
-             placeholder="目標名" maxlength="20">
-      <button class="achieve-btn" onclick="achieveGoal('${g.id}')" title="目標達成">🏆</button>
-      ${canDelete
-        ? `<button class="goal-delete-btn" onclick="deleteGoal('${g.id}')" title="削除">🗑️</button>`
-        : '<div style="width:29px"></div>'}
+      <div class="goal-item-main">
+        <div class="goal-active-dot ${g.id === app.activeGoalId ? '' : 'inactive'}"
+             onclick="switchGoalSettings('${g.id}')" title="この目標を選択"
+             style="cursor:pointer;${g.id === app.activeGoalId ? `background:${g.color}` : ''}"></div>
+        <input class="goal-name-input" value="${escHtml(g.name)}"
+               onchange="renameGoal('${g.id}', this.value)"
+               onfocus="this.style.borderBottomColor='${g.color}'"
+               onblur="this.style.borderBottomColor=''"
+               placeholder="目標名" maxlength="20">
+        <button class="achieve-btn" onclick="achieveGoal('${g.id}')" title="目標達成">🏆</button>
+        ${canDelete
+          ? `<button class="goal-delete-btn" onclick="deleteGoal('${g.id}')" title="削除">🗑️</button>`
+          : '<div style="width:29px"></div>'}
+      </div>
+      <div class="goal-item-deadline">
+        <label class="deadline-inline-label">
+          <span class="deadline-inline-icon">📅</span>
+          <span class="deadline-inline-val">${g.deadline ? formatDeadlineDateShort(g.deadline) : '期限なし'}</span>
+          <input type="date" class="deadline-input-hidden" value="${g.deadline || ''}"
+                 onchange="updateGoalDeadline('${g.id}', this.value)">
+        </label>
+        ${g.deadline
+          ? `<button class="deadline-clear-inline" onclick="updateGoalDeadline('${g.id}', ''); event.stopPropagation()">×</button>`
+          : ''}
+      </div>
     </div>
   `).join('');
 }
@@ -690,6 +763,16 @@ function renameGoal(id, newName) {
   const g    = app.goals.find(g => g.id === id);
   if (g) { g.name = name; saveApp(app); }
   renderGoalPills();
+  updateHome();
+}
+
+function updateGoalDeadline(id, value) {
+  const app = loadApp();
+  const g   = app.goals.find(g => g.id === id);
+  if (!g) return;
+  g.deadline = value || null;
+  saveApp(app);
+  updateSettings();
   updateHome();
 }
 
