@@ -1,23 +1,22 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg:          #1c1f24;
-  --surface:     #262b32;
-  --surface2:    #2f353e;
-  --accent:      #f5a623;
-  --accent-soft: #f8c660;
-  --danger:      #e07878;
-  --success:     #4ecb8d;
-  --text:        #edf0f4;
-  --muted:       #8896a4;
+  --bg:          #0f0f1a;
+  --surface:     #1a1a2e;
+  --surface2:    #16213e;
+  --accent:      #6c63ff;
+  --accent-soft: #a78bfa;
+  --danger:      #f64f59;
+  --success:     #43e97b;
+  --text:        #e8e8f0;
+  --muted:       #8888aa;
   --radius:      16px;
-  --shadow:      0 8px 32px rgba(0,0,0,0.45);
+  --shadow:      0 8px 32px rgba(0,0,0,0.4);
 }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: linear-gradient(160deg, #20232a 0%, #1a1c21 100%);
-  background-attachment: fixed;
+  background: var(--bg);
   color: var(--text);
   min-height: 100vh;
   display: flex;
@@ -48,9 +47,7 @@ body {
 /* ── Cards ── */
 .card {
   background: var(--surface); border-radius: var(--radius);
-  padding: 20px;
-  box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.05);
+  padding: 20px; box-shadow: var(--shadow);
 }
 .card-title {
   font-size: 12px; color: var(--muted);
@@ -84,7 +81,7 @@ body {
 .goal-pill.active {
   background: linear-gradient(135deg, var(--accent), var(--accent-soft));
   color: #fff;
-  box-shadow: 0 2px 12px rgba(245,166,35,0.35);
+  box-shadow: 0 2px 12px rgba(108,99,255,0.35);
 }
 .goal-pill-add {
   flex-shrink: 0;
@@ -100,34 +97,30 @@ body {
 
 /* ── Streak Hero ── */
 .streak-hero {
-  background: linear-gradient(150deg, #2c3038 0%, #22262e 100%);
-  border: 1px solid rgba(245,166,35,0.28);
+  background: linear-gradient(135deg, var(--surface), var(--surface2));
+  border: 1px solid rgba(108,99,255,0.18);
   border-radius: var(--radius);
-  padding: 32px 20px 28px; text-align: center;
+  padding: 28px 20px 24px; text-align: center;
   position: relative; overflow: hidden;
-  box-shadow: var(--shadow), 0 0 0 1px rgba(245,166,35,0.06);
 }
 .streak-hero::before {
-  content: ''; position: absolute;
-  top: -60px; left: 50%; transform: translateX(-50%);
-  width: 300px; height: 300px;
-  background: radial-gradient(circle, rgba(245,166,35,0.18) 0%, transparent 65%);
+  content: ''; position: absolute; inset: -50%;
+  background: radial-gradient(circle at 50% 40%, rgba(108,99,255,0.1) 0%, transparent 55%);
   pointer-events: none;
 }
-.hero-emoji  { font-size: 48px; display: block; margin-bottom: 6px; }
+.hero-emoji  { font-size: 44px; display: block; margin-bottom: 4px; }
 .hero-number {
-  font-size: 84px; font-weight: 900; line-height: 1;
-  background: linear-gradient(135deg, #f5a623 0%, #f8c660 55%, #ffe09a 100%);
+  font-size: 76px; font-weight: 900; line-height: 1;
+  background: linear-gradient(135deg, var(--accent), var(--accent-soft));
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  filter: drop-shadow(0 0 20px rgba(245,166,35,0.45));
 }
-.hero-unit   { font-size: 17px; color: var(--muted); margin: 4px 0 16px; letter-spacing: 0.5px; }
-.hero-msg    { font-size: 15px; font-weight: 700; }
-.hero-sub    { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.hero-unit   { font-size: 17px; color: var(--muted); margin: 2px 0 14px; }
+.hero-msg    { font-size: 15px; font-weight: 600; }
+.hero-sub    { font-size: 12px; color: var(--muted); margin-top: 3px; }
 
 /* ── Restart Toast ── */
 #restart-toast {
-  background: rgba(78,203,141,0.12); border: 1px solid rgba(78,203,141,0.3);
+  background: rgba(67,233,123,0.12); border: 1px solid rgba(67,233,123,0.3);
   border-radius: 12px; padding: 12px 16px;
   font-size: 14px; color: var(--success); text-align: center;
   display: none; animation: fadeDown 0.4s ease;
@@ -144,14 +137,13 @@ body {
   transition: transform 0.15s, box-shadow 0.15s;
 }
 #checkin-btn:not(:disabled) {
-  background: linear-gradient(135deg, #f5a623 0%, #f8c660 100%);
-  color: #1c1f24; font-weight: 800;
-  box-shadow: 0 4px 28px rgba(245,166,35,0.45), inset 0 1px 0 rgba(255,255,255,0.25);
+  background: linear-gradient(135deg, var(--accent), var(--accent-soft));
+  color: #fff; box-shadow: 0 4px 24px rgba(108,99,255,0.4);
 }
 #checkin-btn:not(:disabled):active { transform: scale(0.97); }
 #checkin-btn:disabled {
   background: var(--surface2); color: var(--success);
-  border: 2px solid rgba(78,203,141,0.4); cursor: default;
+  border: 2px solid rgba(67,233,123,0.4); cursor: default;
 }
 
 /* ── Progress ── */
@@ -171,13 +163,10 @@ body {
 .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
 .stat-card {
   background: var(--surface2); border-radius: 12px;
-  padding: 16px 10px; text-align: center;
-  border: 1px solid rgba(255,255,255,0.04);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+  padding: 14px 10px; text-align: center;
 }
-.stat-value { font-size: 28px; font-weight: 900; }
-.stat-card:first-child .stat-value { color: var(--accent); }
-.stat-label { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+.stat-value { font-size: 26px; font-weight: 800; }
+.stat-label { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.3; }
 
 /* ── Bottom Tab Bar ── */
 #tab-bar {
@@ -192,17 +181,10 @@ body {
   background: none; border: none;
   color: var(--muted); cursor: pointer; font-size: 11px;
   display: flex; flex-direction: column; align-items: center; gap: 3px;
-  transition: color 0.15s; position: relative;
+  transition: color 0.15s;
 }
 .tab-btn .icon { font-size: 21px; }
 .tab-btn.active { color: var(--accent); }
-.tab-btn.active::after {
-  content: '';
-  position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%);
-  width: 20px; height: 3px; border-radius: 2px;
-  background: var(--accent);
-  box-shadow: 0 0 8px rgba(245,166,35,0.6);
-}
 
 /* ── Shared Sheet Styles ── */
 .sheet-backdrop {
@@ -306,7 +288,7 @@ body {
 
 #day-popup {
   position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
-  background: var(--surface); border: 1px solid rgba(245,166,35,0.3);
+  background: var(--surface); border: 1px solid rgba(108,99,255,0.3);
   border-radius: 14px; padding: 14px 18px;
   width: calc(100% - 36px); max-width: 394px;
   z-index: 120; box-shadow: var(--shadow);
@@ -368,18 +350,18 @@ body {
 .set-item:last-child { border-bottom: none; }
 .danger-btn {
   width: 100%; padding: 13px;
-  border: 1px solid rgba(224,120,120,0.35); border-radius: 12px;
-  background: rgba(224,120,120,0.08); color: var(--danger);
+  border: 1px solid rgba(246,79,89,0.35); border-radius: 12px;
+  background: rgba(246,79,89,0.08); color: var(--danger);
   font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s;
 }
-.danger-btn:hover { background: rgba(224,120,120,0.18); }
+.danger-btn:hover { background: rgba(246,79,89,0.18); }
 .danger-note { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 14px; }
 
 /* ── All Plans Done Toast ── */
 #all-plans-toast {
   display: none;
-  background: linear-gradient(135deg, rgba(78,203,141,0.15), rgba(245,166,35,0.15));
-  border: 1px solid rgba(78,203,141,0.4);
+  background: linear-gradient(135deg, rgba(67,233,123,0.15), rgba(108,99,255,0.15));
+  border: 1px solid rgba(67,233,123,0.4);
   border-radius: 12px; padding: 14px 16px;
   font-size: 15px; font-weight: 700; color: var(--success); text-align: center;
 }
@@ -391,11 +373,11 @@ body {
 /* ── Copy Template Button ── */
 .copy-template-btn {
   width: 100%; margin-top: 10px; padding: 10px;
-  border: 1.5px dashed rgba(245,166,35,0.35); border-radius: 10px;
+  border: 1.5px dashed rgba(108,99,255,0.35); border-radius: 10px;
   background: transparent; color: var(--accent-soft);
   font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.18s;
 }
-.copy-template-btn:hover { background: rgba(245,166,35,0.08); border-style: solid; }
+.copy-template-btn:hover { background: rgba(108,99,255,0.08); border-style: solid; }
 
 /* ── Plan Section (Home) ── */
 .plan-item {
@@ -418,7 +400,7 @@ body {
 .plan-text-wrap { flex: 1; }
 .plan-type-badge {
   display: inline-block; font-size: 10px; font-weight: 700;
-  background: rgba(245,166,35,0.15); color: var(--accent-soft);
+  background: rgba(108,99,255,0.15); color: var(--accent-soft);
   border-radius: 4px; padding: 1px 6px; margin-right: 6px;
   vertical-align: middle;
 }
@@ -449,7 +431,7 @@ body {
   font-size: 12px; color: var(--muted); line-height: 1.9;
 }
 .plan-text-hint code {
-  background: rgba(245,166,35,0.12); color: var(--accent-soft);
+  background: rgba(108,99,255,0.12); color: var(--accent-soft);
   border-radius: 4px; padding: 1px 5px; font-family: monospace;
 }
 
@@ -473,7 +455,7 @@ body {
 }
 .plan-type-btn.active {
   border-color: var(--accent); color: var(--accent);
-  background: rgba(245,166,35,0.12);
+  background: rgba(108,99,255,0.12);
 }
 #add-plan-input {
   width: 100%; background: var(--surface2);

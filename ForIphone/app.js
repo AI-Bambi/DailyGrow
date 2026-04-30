@@ -353,7 +353,7 @@ function renderGoalPills() {
   const pills = document.getElementById('goal-pills');
   pills.innerHTML = app.goals.map(g =>
     `<button class="goal-pill${g.id === app.activeGoalId ? ' active' : ''}"
-             onclick="switchGoal('${g.id}')">${escHtml(g.name)}</button>`
+             onclick="switchGoal('${g.id}')">${g.name}</button>`
   ).join('') +
   `<button class="goal-pill-add" onclick="openAddGoalSheet()" title="目標を追加">＋</button>`;
 }
@@ -508,7 +508,7 @@ function showCel(streak) {
 function closeCel() { document.getElementById('celebration').classList.remove('show'); }
 
 function spawnConfetti(n) {
-  const colors = ['#f5a623','#f8c660','#4ecb8d','#ffe082','#e07878','#ffd54f','#6ee7b7'];
+  const colors = ['#6c63ff','#a78bfa','#43e97b','#ffd700','#f64f59','#38bdf8','#fb7185'];
   for (let i = 0; i < n; i++) {
     const el = document.createElement('div');
     el.className = 'confetti';
