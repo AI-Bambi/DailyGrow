@@ -357,6 +357,113 @@ body {
 .danger-btn:hover { background: rgba(246,79,89,0.18); }
 .danger-note { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 14px; }
 
+/* ── All Plans Done Toast ── */
+#all-plans-toast {
+  display: none;
+  background: linear-gradient(135deg, rgba(67,233,123,0.15), rgba(108,99,255,0.15));
+  border: 1px solid rgba(67,233,123,0.4);
+  border-radius: 12px; padding: 14px 16px;
+  font-size: 15px; font-weight: 700; color: var(--success); text-align: center;
+}
+#all-plans-toast.toast-show { animation: fadeDown 0.4s ease, fadeOut 0.5s ease 3.5s forwards; }
+@keyframes fadeOut {
+  from { opacity: 1; } to { opacity: 0; }
+}
+
+/* ── Copy Template Button ── */
+.copy-template-btn {
+  width: 100%; margin-top: 10px; padding: 10px;
+  border: 1.5px dashed rgba(108,99,255,0.35); border-radius: 10px;
+  background: transparent; color: var(--accent-soft);
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.18s;
+}
+.copy-template-btn:hover { background: rgba(108,99,255,0.08); border-style: solid; }
+
+/* ── Plan Section (Home) ── */
+.plan-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+  cursor: pointer; transition: opacity 0.2s;
+}
+.plan-item:last-child { border-bottom: none; }
+.plan-item.plan-checked { opacity: 0.5; }
+.plan-check-circle {
+  width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+  border: 2px solid var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: var(--accent);
+  transition: background 0.15s;
+}
+.plan-item.plan-checked .plan-check-circle {
+  background: var(--accent); color: #fff;
+}
+.plan-text-wrap { flex: 1; }
+.plan-type-badge {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  background: rgba(108,99,255,0.15); color: var(--accent-soft);
+  border-radius: 4px; padding: 1px 6px; margin-right: 6px;
+  vertical-align: middle;
+}
+.plan-text { font-size: 14px; vertical-align: middle; }
+.plan-item.plan-checked .plan-text { text-decoration: line-through; color: var(--muted); }
+
+/* ── Plan Mode Tabs (Settings) ── */
+.plan-mode-tabs {
+  display: flex; gap: 4px; margin-bottom: 14px;
+  background: var(--surface2); border-radius: 10px; padding: 4px;
+}
+.plan-mode-tab {
+  flex: 1; padding: 7px; border: none; border-radius: 8px;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  background: transparent; color: var(--muted); transition: all 0.18s;
+}
+.plan-mode-tab.active { background: var(--surface); color: var(--text); }
+
+/* ── Plan Text Input ── */
+#plan-text-input {
+  width: 100%; background: var(--surface2);
+  border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;
+  padding: 12px 14px; color: var(--text); font-size: 14px;
+  resize: none; font-family: inherit; margin-top: 10px;
+}
+#plan-text-input:focus { outline: none; border-color: var(--accent); }
+.plan-text-hint {
+  font-size: 12px; color: var(--muted); line-height: 1.9;
+}
+.plan-text-hint code {
+  background: rgba(108,99,255,0.12); color: var(--accent-soft);
+  border-radius: 4px; padding: 1px 5px; font-family: monospace;
+}
+
+/* ── Plan List (Settings) ── */
+.plan-list-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.plan-list-item:last-child { border-bottom: none; }
+.plan-list-text { flex: 1; font-size: 14px; }
+
+/* ── Add Plan Sheet ── */
+.plan-type-select {
+  display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap;
+}
+.plan-type-btn {
+  flex: 1; min-width: 52px; padding: 8px 4px; border-radius: 8px;
+  border: 1.5px solid rgba(255,255,255,0.08);
+  background: var(--surface2); color: var(--muted);
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.18s;
+}
+.plan-type-btn.active {
+  border-color: var(--accent); color: var(--accent);
+  background: rgba(108,99,255,0.12);
+}
+#add-plan-input {
+  width: 100%; background: var(--surface2);
+  border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;
+  padding: 14px; color: var(--text); font-size: 16px; font-family: inherit;
+}
+#add-plan-input:focus { outline: none; border-color: var(--accent); }
+
 /* ── Animations ── */
 .screen.active > * { animation: fadeIn 0.25s ease both; }
 .screen.active > *:nth-child(1) { animation-delay: 0.00s; }

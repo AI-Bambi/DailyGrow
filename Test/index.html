@@ -23,6 +23,7 @@
     </div>
 
     <div id="restart-toast">🌱 新しいチャレンジ開始！また積み上げよう！</div>
+    <div id="all-plans-toast"></div>
 
     <div class="streak-hero">
       <span class="hero-emoji" id="hero-emoji">✨</span>
@@ -33,6 +34,8 @@
     </div>
 
     <button id="checkin-btn" onclick="startCheckin()">✅ 今日もやった！</button>
+
+    <div id="plan-section"></div>
 
     <div class="card">
       <div class="progress-labels">
@@ -114,6 +117,31 @@
     </div>
 
     <div class="card">
+      <div class="set-label">プラン管理（選択中の目標）</div>
+      <div class="plan-mode-tabs">
+        <button id="plan-tab-list" class="plan-mode-tab active" onclick="switchPlanTab('list')">一覧</button>
+        <button id="plan-tab-text" class="plan-mode-tab"        onclick="switchPlanTab('text')">テキスト入力</button>
+      </div>
+      <div id="plan-list-mode">
+        <div id="plan-settings-list"></div>
+        <div class="add-goal-row" onclick="openAddPlanSheet()">
+          <span>＋</span><span>プランを追加</span>
+        </div>
+        <button class="copy-template-btn" onclick="copyPlanTemplate()">📋 現在のプランをコピー（使い回し用）</button>
+      </div>
+      <div id="plan-text-mode" style="display:none">
+        <div class="plan-text-hint">
+          形式: <code>平日:</code> <code>週末:</code> <code>毎日:</code> <code>今週:</code> <code>今月:</code> <code>今日:</code> <code>明日:</code><br>
+          例: <code>平日: 問題5問</code>　※複数行まとめて貼り付けOK
+        </div>
+        <button class="copy-template-btn" style="margin-top:8px" onclick="copyBlankTemplate()">📋 書式テンプレをコピー</button>
+        <textarea id="plan-text-input" rows="6"
+          placeholder="平日: アプリ問題5問&#10;週末: 実践形式で練習問題を解く&#10;今週: 第3章まで終わらせる&#10;今月: 模擬試験を1回受ける&#10;今日: ○○を読み返す&#10;明日: ○○の復習をする"></textarea>
+        <button class="sheet-btn btn-primary" style="margin-top:10px;width:100%" onclick="importPlanText()">読み込む（追加）</button>
+      </div>
+    </div>
+
+    <div class="card">
       <div class="set-label">データ管理（選択中の目標）</div>
       <p class="danger-note">
         リセットしても、これまでの努力は消えません。<br>
@@ -152,6 +180,28 @@
   <div class="sheet-btns">
     <button class="sheet-btn btn-secondary" onclick="skipMemo()">スキップ</button>
     <button class="sheet-btn btn-primary"   onclick="saveMemo()">保存する</button>
+  </div>
+</div>
+
+<!-- ═══ ADD PLAN SHEET ═══ -->
+<div id="add-plan-backdrop" class="sheet-backdrop" onclick="cancelAddPlan()"></div>
+<div id="add-plan-sheet"    class="bottom-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">プランを追加</div>
+  <div class="sheet-sub">いつ表示するか選んで、内容を入力してください</div>
+  <div class="plan-type-select">
+    <button class="plan-type-btn active" data-type="weekday"  onclick="selectPlanType(this)">平日</button>
+    <button class="plan-type-btn"        data-type="weekend"  onclick="selectPlanType(this)">週末</button>
+    <button class="plan-type-btn"        data-type="everyday" onclick="selectPlanType(this)">毎日</button>
+    <button class="plan-type-btn"        data-type="weekly"   onclick="selectPlanType(this)">今週</button>
+    <button class="plan-type-btn"        data-type="monthly"  onclick="selectPlanType(this)">今月</button>
+    <button class="plan-type-btn"        data-type="once" data-offset="0" onclick="selectPlanType(this)">今日</button>
+    <button class="plan-type-btn"        data-type="once" data-offset="1" onclick="selectPlanType(this)">明日</button>
+  </div>
+  <input id="add-plan-input" type="text" placeholder="例: 問題5問解く" maxlength="40">
+  <div class="sheet-btns">
+    <button class="sheet-btn btn-secondary" onclick="cancelAddPlan()">キャンセル</button>
+    <button class="sheet-btn btn-primary"   onclick="confirmAddPlan()">追加する</button>
   </div>
 </div>
 

@@ -34,7 +34,7 @@ const STORE = 'goaltrack_v2';
 
 function createGoal(name) {
   return { id: genId(), name: name || '新しい目標', createdAt: todayStr(),
-           checkins: {}, bestStreak: 0, pastStreaks: [] };
+           checkins: {}, bestStreak: 0, pastStreaks: [], plans: [] };
 }
 
 function loadApp() {
@@ -76,6 +76,241 @@ function setActiveGoal(id) {
   const app = loadApp();
   app.activeGoalId = id;
   saveApp(app);
+}
+
+// ─── Plan Utils ────────────────────────────────────────────────
+const PLAN_LABEL = { weekday:'平日', weekend:'週末', everyday:'毎日', weekly:'今週', monthly:'今月', once:'一回' };
+const PLAN_MAP   = { '平日':'weekday', '週末':'weekend', '毎日':'everyday', '今週':'weekly', '今月':'monthly', '今日':'once_today', '明日':'once' };
+
+function getWeekStart() {
+  const d   = gameDay();
+  const dow = d.getUTCDay();
+  const diff = dow === 0 ? -6 : 1 - dow;
+  const mon  = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + diff));
+  return `${mon.getUTCFullYear()}-${pad(mon.getUTCMonth()+1)}-${pad(mon.getUTCDate())}`;
+}
+
+function getMonthStart() {
+  const d = gameDay();
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}`;
+}
+
+function todayPlans(goal) {
+  if (!goal.plans || !goal.plans.length) return [];
+  const d   = gameDay();
+  const dow = d.getUTCDay();
+  const isWeekend = dow === 0 || dow === 6;
+  return goal.plans.filter(p => {
+    if (p.type === 'everyday') return true;
+    if (p.type === 'weekday')  return !isWeekend;
+    if (p.type === 'weekend')  return isWeekend;
+    if (p.type === 'weekly')   return true;
+    if (p.type === 'monthly')  return true;
+    if (p.type === 'once')     return p.date === todayStr();
+    return false;
+  });
+}
+
+function checkedPlanIds(goal) {
+  const ci = goal.checkins[todayStr()];
+  return ci ? (ci.checkedPlans || []) : [];
+}
+
+function renderPlanSection() {
+  const goal  = activeGoal();
+  const plans = todayPlans(goal);
+  const sec   = document.getElementById('plan-section');
+  if (!plans.length) { sec.innerHTML = ''; return; }
+
+  const checked  = checkedPlanIds(goal);
+  const items = plans.map(p => {
+    const isChecked = checked.includes(p.id);
+    const badge = p.type === 'once' ? jpDate(p.date) : (PLAN_LABEL[p.type] || p.type);
+    return `
+      <div class="plan-item${isChecked ? ' plan-checked' : ''}" onclick="togglePlan('${p.id}')">
+        <div class="plan-check-circle">${isChecked ? '✓' : ''}</div>
+        <div class="plan-text-wrap">
+          <span class="plan-type-badge">${badge}</span>
+          <span class="plan-text">${escHtml(p.text)}</span>
+        </div>
+      </div>`;
+  }).join('');
+
+  sec.innerHTML = `<div class="card"><div class="card-title">今日のプラン</div>${items}</div>`;
+}
+
+function togglePlan(planId) {
+  const goal  = activeGoal();
+  const today = todayStr();
+  const ci    = goal.checkins[today];
+  if (!ci) {
+    startCheckin(planId);
+    return;
+  }
+  if (!ci.checkedPlans) ci.checkedPlans = [];
+  const idx = ci.checkedPlans.indexOf(planId);
+  if (idx === -1) ci.checkedPlans.push(planId);
+  else            ci.checkedPlans.splice(idx, 1);
+  updateGoal(goal);
+  renderPlanSection();
+  checkAllPlansDone();
+}
+
+const ALL_DONE_MSGS = [
+  '🎉 今日のプラン全部クリア！最高すぎる！',
+  '⭐ 全タスク達成！今日も完璧にこなした！',
+  '🔥 全部やり切った！この調子でいこう！',
+  '✨ 今日のプラン完了！自分を褒めていいよ！',
+  '🏆 完全制覇！今日も全力で駆け抜けた！',
+];
+
+function checkAllPlansDone() {
+  const goal  = activeGoal();
+  const plans = todayPlans(goal);
+  if (!plans.length) return;
+  const checked = checkedPlanIds(goal);
+  if (!plans.every(p => checked.includes(p.id))) return;
+  const msg = ALL_DONE_MSGS[Math.floor(Math.random() * ALL_DONE_MSGS.length)];
+  const el  = document.getElementById('all-plans-toast');
+  el.textContent  = msg;
+  el.style.display = 'block';
+  el.classList.remove('toast-show');
+  void el.offsetWidth;
+  el.classList.add('toast-show');
+  setTimeout(() => { el.style.display = 'none'; el.classList.remove('toast-show'); }, 4000);
+}
+
+function copyBlankTemplate() {
+  const template = '今日: \n明日: \n今週: \n平日: \n週末: \n今月: \n毎日: ';
+  navigator.clipboard.writeText(template)
+    .then(() => {
+      const btns = document.querySelectorAll('#plan-text-mode .copy-template-btn');
+      const btn  = btns[0];
+      const orig = btn.textContent;
+      btn.textContent = '✅ コピーしました！';
+      setTimeout(() => { btn.textContent = orig; }, 2000);
+    })
+    .catch(() => alert('コピーに失敗しました'));
+}
+
+function copyPlanTemplate() {
+  const goal    = activeGoal();
+  const REVERSE = { weekday:'平日', weekend:'週末', everyday:'毎日', weekly:'今週', monthly:'今月' };
+  const lines   = (goal.plans || [])
+    .filter(p => p.type !== 'once')
+    .map(p => `${REVERSE[p.type]}: ${p.text}`);
+  if (!lines.length) {
+    alert('コピーできるプランがありません\n（今日・明日の一回限りプランはコピー対象外です）');
+    return;
+  }
+  navigator.clipboard.writeText(lines.join('\n'))
+    .then(() => {
+      const btn = document.querySelector('.copy-template-btn');
+      const orig = btn.textContent;
+      btn.textContent = '✅ コピーしました！';
+      setTimeout(() => { btn.textContent = orig; }, 2000);
+    })
+    .catch(() => alert('コピーに失敗しました'));
+}
+
+// ─── Plan Settings ─────────────────────────────────────────────
+let _selectedPlanType   = 'weekday';
+let _selectedPlanOffset = 1;
+
+function switchPlanTab(mode) {
+  document.getElementById('plan-list-mode').style.display = mode === 'list' ? '' : 'none';
+  document.getElementById('plan-text-mode').style.display = mode === 'text' ? '' : 'none';
+  document.getElementById('plan-tab-list').classList.toggle('active', mode === 'list');
+  document.getElementById('plan-tab-text').classList.toggle('active', mode === 'text');
+  if (mode === 'list') renderPlanSettingsList();
+}
+
+function renderPlanSettingsList() {
+  const goal  = activeGoal();
+  const plans = goal.plans || [];
+  document.getElementById('plan-settings-list').innerHTML = plans.length
+    ? plans.map(p => {
+        const badge = p.type === 'once' ? jpDate(p.date) : (PLAN_LABEL[p.type] || p.type);
+        return `
+        <div class="plan-list-item">
+          <span class="plan-type-badge">${badge}</span>
+          <span class="plan-list-text">${escHtml(p.text)}</span>
+          <button class="goal-delete-btn" onclick="deletePlan('${p.id}')">🗑️</button>
+        </div>`;
+      }).join('')
+    : '<div style="color:var(--muted);font-size:13px;padding:8px 0">プランはまだありません</div>';
+}
+
+function deletePlan(id) {
+  const goal = activeGoal();
+  goal.plans = (goal.plans || []).filter(p => p.id !== id);
+  updateGoal(goal);
+  renderPlanSettingsList();
+  renderPlanSection();
+}
+
+function openAddPlanSheet() {
+  _selectedPlanType   = 'weekday';
+  _selectedPlanOffset = 1;
+  document.querySelectorAll('.plan-type-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.type === 'weekday' && b.dataset.offset === undefined));
+  document.getElementById('add-plan-input').value = '';
+  document.getElementById('add-plan-backdrop').style.display = 'block';
+  document.getElementById('add-plan-sheet').classList.add('open');
+  setTimeout(() => document.getElementById('add-plan-input').focus(), 400);
+}
+
+function cancelAddPlan() {
+  document.getElementById('add-plan-backdrop').style.display = 'none';
+  document.getElementById('add-plan-sheet').classList.remove('open');
+}
+
+function selectPlanType(btn) {
+  _selectedPlanType   = btn.dataset.type;
+  _selectedPlanOffset = btn.dataset.offset !== undefined ? Number(btn.dataset.offset) : 1;
+  document.querySelectorAll('.plan-type-btn').forEach(b => b.classList.toggle('active', b === btn));
+}
+
+function confirmAddPlan() {
+  const text = document.getElementById('add-plan-input').value.trim();
+  if (!text) { document.getElementById('add-plan-input').focus(); return; }
+  const goal = activeGoal();
+  if (!goal.plans) goal.plans = [];
+  const plan = { id: genId(), type: _selectedPlanType, text };
+  if (_selectedPlanType === 'once') plan.date = offsetDate(todayStr(), _selectedPlanOffset);
+  goal.plans.push(plan);
+  updateGoal(goal);
+  cancelAddPlan();
+  renderPlanSettingsList();
+  renderPlanSection();
+}
+
+function importPlanText() {
+  const raw    = document.getElementById('plan-text-input').value;
+  const lines  = raw.split('\n').map(l => l.trim()).filter(Boolean);
+  const parsed = [];
+  const today    = todayStr();
+  const tomorrow = offsetDate(today, 1);
+  for (const line of lines) {
+    const m = line.match(/^(平日|週末|毎日|今週|今月|今日|明日)[：:]\s*(.+)$/);
+    if (!m) continue;
+    const raw  = PLAN_MAP[m[1]];
+    const plan = { id: genId(), type: raw === 'once_today' ? 'once' : raw, text: m[2].trim() };
+    if (raw === 'once_today') plan.date = today;
+    if (raw === 'once')       plan.date = tomorrow;
+    parsed.push(plan);
+  }
+  if (!parsed.length) {
+    alert('読み込めるプランがありませんでした。\n形式例: 平日: 問題5問');
+    return;
+  }
+  const goal = activeGoal();
+  if (!goal.plans) goal.plans = [];
+  goal.plans.push(...parsed);
+  updateGoal(goal);
+  document.getElementById('plan-text-input').value = '';
+  switchPlanTab('list');
+  renderPlanSection();
 }
 
 // ─── Streak Logic ──────────────────────────────────────────────
@@ -127,6 +362,7 @@ function switchGoal(id) {
   setActiveGoal(id);
   renderGoalPills();
   updateHome();
+  renderPlanSection();
 }
 
 // ─── Home UI ──────────────────────────────────────────────────
@@ -166,18 +402,29 @@ function updateHome() {
     fill.style.width = Math.round(((streak - prev) / (next - prev)) * 100) + '%';
     lbl.textContent  = `${next}日まであと${next - streak}日`;
   }
+
+  renderPlanSection();
 }
 
 // ─── Check-in ─────────────────────────────────────────────────
 let _pendingDate = null;
 
-function startCheckin() {
+function startCheckin(planId = null) {
   const goal  = activeGoal();
   const today = todayStr();
-  if (goal.checkins[today]) return;
+  if (goal.checkins[today]) {
+    if (planId) {
+      const ci = goal.checkins[today];
+      if (!ci.checkedPlans) ci.checkedPlans = [];
+      if (!ci.checkedPlans.includes(planId)) ci.checkedPlans.push(planId);
+      updateGoal(goal);
+      renderPlanSection();
+    }
+    return;
+  }
 
   const prevStreak = calcStreak(goal.checkins);
-  goal.checkins[today] = { memo: '' };
+  goal.checkins[today] = { memo: '', checkedPlans: planId ? [planId] : [] };
   const newStreak = calcStreak(goal.checkins);
   if (newStreak > goal.bestStreak) goal.bestStreak = newStreak;
   updateGoal(goal);
@@ -344,6 +591,7 @@ document.addEventListener('click', e => {
 
 // ─── Settings UI ───────────────────────────────────────────────
 function updateSettings() {
+  renderPlanSettingsList();
   const app = loadApp();
   const list = document.getElementById('goal-settings-list');
   const canDelete = app.goals.length > 1;
@@ -369,6 +617,7 @@ function switchGoalSettings(id) {
   renderGoalPills();
   updateHome();
   updateSettings();
+  renderPlanSection();
 }
 
 function renameGoal(id, newName) {
@@ -423,6 +672,9 @@ function switchTab(name) {
 // ─── Init ──────────────────────────────────────────────────────
 document.getElementById('add-goal-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') confirmAddGoal();
+});
+document.getElementById('add-plan-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') confirmAddPlan();
 });
 
 renderGoalPills();
