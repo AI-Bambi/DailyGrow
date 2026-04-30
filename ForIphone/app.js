@@ -516,6 +516,7 @@ function confirmAddGoal() {
   cancelAddGoal();
   renderGoalPills();
   updateHome();
+  updateSettings();
   setTimeout(() => {
     const pills = document.getElementById('goal-pills');
     pills.scrollLeft = pills.scrollWidth;

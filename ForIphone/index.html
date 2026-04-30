@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="GoalTrack">
   <title>GoalTrack</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -71,88 +74,91 @@
         <div class="sub" id="hist-goal-name">—</div>
       </div>
     </div>
+    <div class="screen-body">
+      <div class="card">
+        <div class="cal-month" id="cal-month"></div>
+        <div class="cal-grid"  id="cal-headers"></div>
+        <div style="height:6px"></div>
+        <div class="cal-grid"  id="cal-days"></div>
+      </div>
 
-    <div class="card">
-      <div class="cal-month" id="cal-month"></div>
-      <div class="cal-grid"  id="cal-headers"></div>
-      <div style="height:6px"></div>
-      <div class="cal-grid"  id="cal-days"></div>
-    </div>
+      <div class="card">
+        <div class="rec-item">
+          <span class="rec-label">🔥 現在の連続日数</span>
+          <span class="rec-value" id="h-streak">0日</span>
+        </div>
+        <div class="rec-item">
+          <span class="rec-label">🏆 最高連続記録</span>
+          <span class="rec-value" id="h-best">0日</span>
+        </div>
+        <div class="rec-item">
+          <span class="rec-label">✅ 累計チェック日数</span>
+          <span class="rec-value" id="h-total">0日</span>
+        </div>
+        <div class="rec-item">
+          <span class="rec-label">📅 最終チェック日</span>
+          <span class="rec-value" id="h-last">—</span>
+        </div>
+      </div>
 
-    <div class="card">
-      <div class="rec-item">
-        <span class="rec-label">🔥 現在の連続日数</span>
-        <span class="rec-value" id="h-streak">0日</span>
+      <div class="card" id="past-card" style="display:none">
+        <div class="card-title">過去の連続記録</div>
+        <div id="past-list"></div>
       </div>
-      <div class="rec-item">
-        <span class="rec-label">🏆 最高連続記録</span>
-        <span class="rec-value" id="h-best">0日</span>
-      </div>
-      <div class="rec-item">
-        <span class="rec-label">✅ 累計チェック日数</span>
-        <span class="rec-value" id="h-total">0日</span>
-      </div>
-      <div class="rec-item">
-        <span class="rec-label">📅 最終チェック日</span>
-        <span class="rec-value" id="h-last">—</span>
-      </div>
-    </div>
-
-    <div class="card" id="past-card" style="display:none">
-      <div class="card-title">過去の連続記録</div>
-      <div id="past-list"></div>
     </div>
   </div>
 
   <!-- ═══ SETTINGS ═══ -->
   <div id="screen-settings" class="screen">
     <div class="screen-header"><h1>設定</h1></div>
-
-    <div class="card">
-      <div class="set-label">目標一覧</div>
-      <div id="goal-settings-list"></div>
-      <div class="add-goal-row" onclick="openAddGoalSheet()">
-        <span>＋</span><span>目標を追加</span>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="set-label">プラン管理（選択中の目標）</div>
-      <div class="plan-mode-tabs">
-        <button id="plan-tab-list" class="plan-mode-tab active" onclick="switchPlanTab('list')">一覧</button>
-        <button id="plan-tab-text" class="plan-mode-tab"        onclick="switchPlanTab('text')">テキスト入力</button>
-      </div>
-      <div id="plan-list-mode">
-        <div id="plan-settings-list"></div>
-        <div class="add-goal-row" onclick="openAddPlanSheet()">
-          <span>＋</span><span>プランを追加</span>
+    <div class="screen-body">
+      <div class="card">
+        <div class="set-label">目標一覧</div>
+        <div id="goal-settings-list"></div>
+        <div class="add-goal-row" onclick="openAddGoalSheet()">
+          <span>＋</span><span>目標を追加</span>
         </div>
-        <button class="copy-template-btn" onclick="copyPlanTemplate()">📋 現在のプランをコピー（使い回し用）</button>
       </div>
-      <div id="plan-text-mode" style="display:none">
-        <div class="plan-text-hint">
-          形式: <code>平日:</code> <code>週末:</code> <code>毎日:</code> <code>今週:</code> <code>今月:</code> <code>今日:</code> <code>明日:</code><br>
-          例: <code>平日: 問題5問</code>　※複数行まとめて貼り付けOK
+
+      <div class="card">
+        <div class="set-label">プラン管理（選択中の目標）</div>
+        <div class="plan-mode-tabs">
+          <button id="plan-tab-list" class="plan-mode-tab active" onclick="switchPlanTab('list')">一覧</button>
+          <button id="plan-tab-text" class="plan-mode-tab"        onclick="switchPlanTab('text')">テキスト入力</button>
         </div>
-        <button class="copy-template-btn" style="margin-top:8px" onclick="copyBlankTemplate()">📋 書式テンプレをコピー</button>
-        <textarea id="plan-text-input" rows="6"
-          placeholder="平日: アプリ問題5問&#10;週末: 実践形式で練習問題を解く&#10;今週: 第3章まで終わらせる&#10;今月: 模擬試験を1回受ける&#10;今日: ○○を読み返す&#10;明日: ○○の復習をする"></textarea>
-        <button class="sheet-btn btn-primary" style="margin-top:10px;width:100%" onclick="importPlanText()">読み込む（追加）</button>
+        <div id="plan-list-mode">
+          <div id="plan-settings-list"></div>
+          <div class="add-goal-row" onclick="openAddPlanSheet()">
+            <span>＋</span><span>プランを追加</span>
+          </div>
+          <button class="copy-template-btn" onclick="copyPlanTemplate()">📋 現在のプランをコピー（使い回し用）</button>
+        </div>
+        <div id="plan-text-mode" style="display:none">
+          <div class="plan-text-hint">
+            形式: <code>平日:</code> <code>週末:</code> <code>毎日:</code> <code>今週:</code> <code>今月:</code> <code>今日:</code> <code>明日:</code><br>
+            例: <code>平日: 問題5問</code>　※複数行まとめて貼り付けOK
+          </div>
+          <button class="copy-template-btn" style="margin-top:8px" onclick="copyBlankTemplate()">📋 書式テンプレをコピー</button>
+          <textarea id="plan-text-input" rows="6"
+            placeholder="平日: アプリ問題5問&#10;週末: 実践形式で練習問題を解く&#10;今週: 第3章まで終わらせる&#10;今月: 模擬試験を1回受ける&#10;今日: ○○を読み返す&#10;明日: ○○の復習をする"></textarea>
+          <button class="sheet-btn btn-primary" style="margin-top:10px;width:100%" onclick="importPlanText()">読み込む（追加）</button>
+        </div>
       </div>
-    </div>
 
-    <div class="card">
-      <div class="set-label">データ管理（選択中の目標）</div>
-      <p class="danger-note">
-        リセットしても、これまでの努力は消えません。<br>
-        過去の記録はそのまま残ります。
-      </p>
-      <button class="danger-btn" onclick="confirmReset()">🔄 新しいチャレンジを始める</button>
-    </div>
+      <div class="card">
+        <div class="set-label">データ管理（選択中の目標）</div>
+        <p class="danger-note">
+          リセットしても、これまでの努力は消えません。<br>
+          過去の記録はそのまま残ります。
+        </p>
+        <button class="danger-btn" onclick="confirmReset()">🔄 新しいチャレンジを始める</button>
+      </div>
 
-    <div class="card" style="text-align:center; color:var(--muted); font-size:12px; padding:14px;">
-      GoalTrack v3.0（HTML プロトタイプ）<br>
-      データはこのブラウザに保存されます
+      <div class="card" style="text-align:center; color:var(--muted); font-size:12px; padding:14px;">
+        GoalTrack v3.0（HTML プロトタイプ）<br>
+        データはこのブラウザに保存されます<br>
+        <button onclick="location.reload()" style="margin-top:10px; background:none; border:1px solid rgba(255,255,255,0.15); border-radius:8px; color:var(--muted); font-size:12px; padding:6px 16px; cursor:pointer;">🔄 アプリを更新</button>
+      </div>
     </div>
   </div>
 
