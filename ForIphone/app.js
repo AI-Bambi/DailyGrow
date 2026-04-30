@@ -31,10 +31,36 @@ function genId() { return Math.random().toString(36).slice(2,10); }
 // App:   { version:2, goals:[...], activeGoalId }
 
 const STORE = 'goaltrack_v2';
+const GOAL_COLORS = ['#f5a623', '#e07060', '#5ab88a', '#9b78d4', '#6899cc', '#c87890'];
 
-function createGoal(name) {
+let _pickedColor = GOAL_COLORS[0];
+
+function getNextColor() {
+  const used = loadApp().goals.filter(g => !g.archived).map(g => g.color);
+  return GOAL_COLORS.find(c => !used.includes(c)) || GOAL_COLORS[0];
+}
+
+function renderColorPicker(containerId, selectedColor) {
+  document.getElementById(containerId).innerHTML = GOAL_COLORS.map(c =>
+    `<button class="color-dot${c === selectedColor ? ' selected' : ''}"
+             style="background:${c}"
+             onclick="pickGoalColor(this,'${containerId}','${c}')"></button>`
+  ).join('');
+}
+
+function pickGoalColor(el, containerId, color) {
+  _pickedColor = color;
+  document.querySelectorAll(`#${containerId} .color-dot`).forEach(d => d.classList.remove('selected'));
+  el.classList.add('selected');
+  const inputMap = { 'add-goal-color-picker': 'add-goal-input', 'welcome-color-picker': 'welcome-goal-input' };
+  const inputId = inputMap[containerId];
+  if (inputId) document.getElementById(inputId).style.borderColor = color;
+}
+
+function createGoal(name, color) {
   return { id: genId(), name: name || '新しい目標', createdAt: todayStr(),
-           checkins: {}, bestStreak: 0, pastStreaks: [], plans: [] };
+           checkins: {}, bestStreak: 0, pastStreaks: [], plans: [],
+           color: color || GOAL_COLORS[0] };
 }
 
 function loadApp() {
@@ -376,10 +402,15 @@ function renderGoalPills() {
   const active = app.goals.filter(g => !g.archived);
   const pills  = document.getElementById('goal-pills');
   if (!active.length) { pills.innerHTML = ''; return; }
-  pills.innerHTML = active.map(g =>
-    `<button class="goal-pill${g.id === app.activeGoalId ? ' active' : ''}"
-             onclick="switchGoal('${g.id}')">${escHtml(g.name)}</button>`
-  ).join('') +
+  pills.innerHTML = active.map(g => {
+    const isActive = g.id === app.activeGoalId;
+    const color    = g.color || GOAL_COLORS[0];
+    const styleAttr = isActive
+      ? `style="background:${color};box-shadow:0 2px 12px ${color}55;color:#1c1f24;"`
+      : '';
+    return `<button class="goal-pill${isActive ? ' active' : ''}" ${styleAttr}
+                    onclick="switchGoal('${g.id}')">${escHtml(g.name)}</button>`;
+  }).join('') +
   `<button class="goal-pill-add" onclick="openAddGoalSheet()" title="目標を追加">＋</button>`;
 }
 
@@ -496,7 +527,11 @@ function showRestartToast() {
 
 // ─── Add Goal Sheet ────────────────────────────────────────────
 function openAddGoalSheet() {
+  const next = getNextColor();
+  _pickedColor = next;
   document.getElementById('add-goal-input').value = '';
+  document.getElementById('add-goal-input').style.borderColor = next;
+  renderColorPicker('add-goal-color-picker', next);
   document.getElementById('add-goal-backdrop').style.display = 'block';
   document.getElementById('add-goal-sheet').classList.add('open');
   setTimeout(() => document.getElementById('add-goal-input').focus(), 400);
@@ -509,7 +544,7 @@ function confirmAddGoal() {
   const name = document.getElementById('add-goal-input').value.trim();
   if (!name) { document.getElementById('add-goal-input').focus(); return; }
   const app  = loadApp();
-  const goal = createGoal(name);
+  const goal = createGoal(name, _pickedColor);
   app.goals.push(goal);
   app.activeGoalId = goal.id;
   saveApp(app);
@@ -740,7 +775,11 @@ function closeAchievementCel() {
 
 // ─── Welcome Sheet ─────────────────────────────────────────────
 function showWelcomeSheet() {
+  const next = getNextColor();
+  _pickedColor = next;
   document.getElementById('welcome-goal-input').value = '';
+  document.getElementById('welcome-goal-input').style.borderColor = next;
+  renderColorPicker('welcome-color-picker', next);
   document.getElementById('welcome-backdrop').style.display = 'block';
   document.getElementById('welcome-sheet').classList.add('open');
   setTimeout(() => document.getElementById('welcome-goal-input').focus(), 400);
@@ -750,7 +789,7 @@ function confirmFirstGoal() {
   const name = document.getElementById('welcome-goal-input').value.trim();
   if (!name) { document.getElementById('welcome-goal-input').focus(); return; }
   const app  = loadApp();
-  const goal = createGoal(name);
+  const goal = createGoal(name, _pickedColor);
   app.goals.push(goal);
   app.activeGoalId = goal.id;
   saveApp(app);

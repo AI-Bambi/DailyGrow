@@ -50,6 +50,8 @@ body {
   padding: 0 18px calc(88px + env(safe-area-inset-bottom));
   overflow-y: auto;
 }
+/* プランが増えても streak-hero 等が圧縮されないよう flex-shrink を無効化 */
+#screen-home > * { flex-shrink: 0; }
 
 /* 履歴・設定はヘッダー外のエリアをスクロール */
 .screen-body {
@@ -533,6 +535,20 @@ body {
   padding: 14px; color: var(--text); font-size: 16px; font-family: inherit;
 }
 #add-plan-input:focus { outline: none; border-color: var(--accent); }
+
+/* ── Goal Color Picker ── */
+.color-picker {
+  display: flex; gap: 10px; margin: 4px 0 14px;
+}
+.color-dot {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 2.5px solid transparent; cursor: pointer; padding: 0;
+  flex-shrink: 0; transition: transform 0.15s, border-color 0.15s;
+}
+.color-dot.selected {
+  border-color: rgba(255,255,255,0.9);
+  transform: scale(1.2);
+}
 
 /* ── Welcome Sheet ── */
 .welcome-emoji { font-size: 52px; text-align: center; margin-bottom: 10px; }

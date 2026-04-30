@@ -7,10 +7,10 @@
 | プラットフォーム | パス | 用途 | 状態 |
 |-------------|------|------|------|
 | Web（PC） | `Test/` | Windows PC ブラウザで確認 | ✅ 動作中 |
-| Web（スマホ） | `ForIphone/` | iPhone Safari で確認 | ✅ 動作中 |
+| Web（iPhone） | `ForIphone/` | iPhone Safari / PWA で確認 | ✅ 動作中・最適化済み |
 | iOS ネイティブ | `iOS/GoalTrack/` | App Store 配信用 | ⏳ Mac 環境が揃い次第 |
 
-> **開発環境**：Windows PC のため Xcode は使用不可。現在は `Test/` と `ForIphone/` の Web 版が主な動作確認環境。
+> **開発環境**：Windows PC + VS Code Live Server。`Test/` と `ForIphone/` は**別管理**（`ForIphone/` は iPhone 専用の追加機能・最適化あり）。
 
 ## 実装済み機能（Phase 1）
 
@@ -23,6 +23,13 @@
 - ✅ 日本時間 AM 2:00 を1日の区切りとする夜間作業対応
 - ✅ データ永続化（Web: localStorage / iOS: UserDefaults）
 - ✅ v1 → v2 データマイグレーション対応
+
+### ForIphone/ 追加機能
+- ✅ 初回起動ウェルカムシート（目標名入力）
+- ✅ 目標達成機能（🏆 アーカイブ・記録保持・達成セレブレーション）
+- ✅ PWA 対応（ホーム画面に追加でフルスクリーン起動）
+- ✅ iPhone Safari 最適化（ノッチ・ホームインジケーター・自動ズーム対応）
+- ✅ 履歴・設定タブのヘッダー固定表示
 
 ## ファイル構造
 
@@ -53,8 +60,16 @@ GoalTrack/
 ### PC（Windows）で確認
 `Test/index.html` をブラウザ（Chrome / Edge 等）でダブルクリックして開く。
 
-### iPhone（Safari）で確認
-`ForIphone/index.html` を iPhone の Safari で開く（ローカルファイルまたは Live Server 等で配信）。
+### iPhone で確認（Live Server 推奨）
+1. VS Code で `ForIphone/index.html` を右クリック →「Open with Live Server」
+2. PC のローカル IP を確認（コマンドプロンプトで `ipconfig`）
+3. iPhone Safari で `http://[PCのIP]:5500/ForIphone/index.html` を開く
+4. コード保存で iPhone も自動リロード
+
+### iPhone に PWA としてインストール
+1. 上記 Live Server または GitHub Pages の URL を Safari で開く
+2. 共有ボタン（□↑）→「ホーム画面に追加」
+3. ホーム画面のアイコンから起動 → Safari UI なしのフルスクリーン表示
 
 ### iOS ネイティブ（将来対応）
 Mac + Xcode が必要なため現時点では不可。[SETUP_GUIDE.md](SETUP_GUIDE.md) に手順を記載済み。
