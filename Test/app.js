@@ -1,0 +1,429 @@
+// ─── Utils ────────────────────────────────────────────────────
+// 1日の区切り: 日本時間 (UTC+9) AM2:00
+// UTC+9 から 2h 引いた UTC 日付を「今日」とみなす
+function gameDay() {
+  const JST_OFFSET_MS  = 9 * 60 * 60 * 1000;
+  const CUTOFF_HOUR_MS = 2 * 60 * 60 * 1000;
+  return new Date(Date.now() + JST_OFFSET_MS - CUTOFF_HOUR_MS);
+}
+
+function todayStr() {
+  const d = gameDay();
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())}`;
+}
+function pad(n) { return String(n).padStart(2,'0'); }
+
+function offsetDate(ds, days) {
+  const d = new Date(ds + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+
+function jpDate(ds) {
+  const d = new Date(ds + 'T00:00:00');
+  return `${d.getMonth()+1}月${d.getDate()}日（${'日月火水木金土'[d.getDay()]}）`;
+}
+
+function genId() { return Math.random().toString(36).slice(2,10); }
+
+// ─── Data ─────────────────────────────────────────────────────
+// Goal:  { id, name, createdAt, checkins: {'YYYY-MM-DD':{memo}}, bestStreak, pastStreaks }
+// App:   { version:2, goals:[...], activeGoalId }
+
+const STORE = 'goaltrack_v2';
+
+function createGoal(name) {
+  return { id: genId(), name: name || '新しい目標', createdAt: todayStr(),
+           checkins: {}, bestStreak: 0, pastStreaks: [] };
+}
+
+function loadApp() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORE) || 'null');
+    if (!raw) return freshApp();
+    if (!raw.version) {            // migrate v1 → v2
+      const g = createGoal(raw.goalName || 'GoalTrack');
+      (raw.checkins || []).forEach(d => { g.checkins[d] = { memo: '' }; });
+      g.bestStreak = raw.bestStreak || 0;
+      g.pastStreaks = raw.pastStreaks || [];
+      const app = { version: 2, goals: [g], activeGoalId: g.id };
+      saveApp(app); return app;
+    }
+    return raw;
+  } catch(e) { return freshApp(); }
+}
+
+function freshApp() {
+  const g = createGoal('GoalTrack');
+  const app = { version: 2, goals: [g], activeGoalId: g.id };
+  saveApp(app); return app;
+}
+
+function saveApp(app) { localStorage.setItem(STORE, JSON.stringify(app)); }
+
+function activeGoal() {
+  const app = loadApp();
+  return app.goals.find(g => g.id === app.activeGoalId) || app.goals[0];
+}
+
+function updateGoal(updated) {
+  const app = loadApp();
+  app.goals = app.goals.map(g => g.id === updated.id ? updated : g);
+  saveApp(app);
+}
+
+function setActiveGoal(id) {
+  const app = loadApp();
+  app.activeGoalId = id;
+  saveApp(app);
+}
+
+// ─── Streak Logic ──────────────────────────────────────────────
+function calcStreak(checkins) {
+  const dates = Object.keys(checkins).sort().reverse();
+  if (!dates.length) return 0;
+  const t = todayStr(), y = offsetDate(t, -1);
+  if (dates[0] !== t && dates[0] !== y) return 0;
+  let n = 1;
+  for (let i = 1; i < dates.length; i++) {
+    if (dates[i] === offsetDate(dates[i-1], -1)) n++;
+    else break;
+  }
+  return n;
+}
+
+const MILESTONES = [3, 7, 30, 100];
+
+const CEL = {
+  3:   { emoji:'⭐', title:'3日連続！すごい！',   msg:'3日間、ちゃんと続けた。\nそれだけで十分すごいことだよ！\n次は7日を目指そう🎯', confetti:40 },
+  7:   { emoji:'🔥', title:'1週間連続！！',       msg:'7日間も続けたなんて最高すぎる！\n毎日コツコツ積み上げた証拠だね。\nこの調子でいこう！💪', confetti:60 },
+  30:  { emoji:'🏆', title:'30日達成！！！',      msg:'1ヶ月間、本当によく頑張った！！\n毎日継続するって難しいのに、\nあなたはやりきった！素晴らしい🎊', confetti:90 },
+  100: { emoji:'🌟', title:'100日連続！！！！！', msg:'100日！！！！！\nこれはもう習慣が身についた証拠。\nあなたは本物だ。本当におめでとう！！\n🎆🎆🎆🎆🎆', confetti:150 },
+};
+
+function streakVisual(n) {
+  if (n >= 100) return { emoji:'🌟', msg:'伝説の域に達した！これが本物の継続力！', sub:`${n}日 🎆` };
+  if (n >= 30)  return { emoji:'🏆', msg:'1ヶ月以上継続中！もう習慣になってるね！', sub:`${n}日 — 驚異の継続力！` };
+  if (n >= 7)   return { emoji:'🔥', msg:'1週間以上続いてる！最高すぎる！', sub:`${n}日 — この調子で行こう！` };
+  if (n >= 3)   return { emoji:'⭐', msg:'3日以上継続中！いい感じ！', sub:`${n}日 — 続けることが力になる` };
+  if (n === 0)  return { emoji:'✨', msg:'さあ、今日もはじめよう！', sub:'最初の一歩が一番大事' };
+  return { emoji:'💪', msg:'今日もやり遂げた！えらい！', sub:`${n}日 — 着実に積み上げ中！` };
+}
+
+function nextMilestone(n) { return MILESTONES.find(m => n < m) || null; }
+
+// ─── Goal Pill Tabs ────────────────────────────────────────────
+function renderGoalPills() {
+  const app   = loadApp();
+  const pills = document.getElementById('goal-pills');
+  pills.innerHTML = app.goals.map(g =>
+    `<button class="goal-pill${g.id === app.activeGoalId ? ' active' : ''}"
+             onclick="switchGoal('${g.id}')">${g.name}</button>`
+  ).join('') +
+  `<button class="goal-pill-add" onclick="openAddGoalSheet()" title="目標を追加">＋</button>`;
+}
+
+function switchGoal(id) {
+  setActiveGoal(id);
+  renderGoalPills();
+  updateHome();
+}
+
+// ─── Home UI ──────────────────────────────────────────────────
+function updateHome() {
+  const goal   = activeGoal();
+  const streak = calcStreak(goal.checkins);
+  const today  = todayStr();
+  const done   = !!goal.checkins[today];
+  const total  = Object.keys(goal.checkins).length;
+
+  const d = gameDay();
+  document.getElementById('today-label').textContent =
+    `${d.getUTCFullYear()}年${d.getUTCMonth()+1}月${d.getUTCDate()}日（${'日月火水木金土'[d.getUTCDay()]}）`;
+
+  const v = streakVisual(streak);
+  document.getElementById('hero-emoji').textContent = v.emoji;
+  document.getElementById('hero-num').textContent   = streak;
+  document.getElementById('hero-msg').textContent   = v.msg;
+  document.getElementById('hero-sub').textContent   = v.sub;
+
+  document.getElementById('s-streak').textContent = streak;
+  document.getElementById('s-best').textContent   = goal.bestStreak;
+  document.getElementById('s-total').textContent  = total;
+
+  const btn = document.getElementById('checkin-btn');
+  btn.textContent = done ? '✅ 今日はチェック済み！おつかれ様！' : '✅ 今日もやった！';
+  btn.disabled    = done;
+
+  const next = nextMilestone(streak);
+  const fill = document.getElementById('prog-fill');
+  const lbl  = document.getElementById('milestone-right');
+  if (!next) {
+    fill.style.width = '100%';
+    lbl.textContent  = '全マイルストーン達成！🌟';
+  } else {
+    const prev = MILESTONES[MILESTONES.indexOf(next) - 1] ?? 0;
+    fill.style.width = Math.round(((streak - prev) / (next - prev)) * 100) + '%';
+    lbl.textContent  = `${next}日まであと${next - streak}日`;
+  }
+}
+
+// ─── Check-in ─────────────────────────────────────────────────
+let _pendingDate = null;
+
+function startCheckin() {
+  const goal  = activeGoal();
+  const today = todayStr();
+  if (goal.checkins[today]) return;
+
+  const prevStreak = calcStreak(goal.checkins);
+  goal.checkins[today] = { memo: '' };
+  const newStreak = calcStreak(goal.checkins);
+  if (newStreak > goal.bestStreak) goal.bestStreak = newStreak;
+  updateGoal(goal);
+  updateHome();
+
+  _pendingDate = today;
+
+  const hadBefore = Object.keys(goal.checkins).length > 1;
+  if (prevStreak === 0 && hadBefore) showRestartToast();
+
+  setTimeout(() => openMemoSheet(), 350);
+  if (CEL[newStreak]) setTimeout(() => showCel(newStreak), 2200);
+}
+
+function openMemoSheet() {
+  document.getElementById('memo-input').value = '';
+  document.getElementById('memo-backdrop').style.display = 'block';
+  document.getElementById('memo-sheet').classList.add('open');
+  setTimeout(() => document.getElementById('memo-input').focus(), 400);
+}
+function closeMemoSheet() {
+  document.getElementById('memo-backdrop').style.display = 'none';
+  document.getElementById('memo-sheet').classList.remove('open');
+}
+function skipMemo() { closeMemoSheet(); _pendingDate = null; }
+function saveMemo() {
+  const text = document.getElementById('memo-input').value.trim();
+  if (text && _pendingDate) {
+    const goal = activeGoal();
+    if (goal.checkins[_pendingDate]) {
+      goal.checkins[_pendingDate].memo = text;
+      updateGoal(goal);
+    }
+  }
+  closeMemoSheet(); _pendingDate = null;
+}
+
+function showRestartToast() {
+  const el = document.getElementById('restart-toast');
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+
+// ─── Add Goal Sheet ────────────────────────────────────────────
+function openAddGoalSheet() {
+  document.getElementById('add-goal-input').value = '';
+  document.getElementById('add-goal-backdrop').style.display = 'block';
+  document.getElementById('add-goal-sheet').classList.add('open');
+  setTimeout(() => document.getElementById('add-goal-input').focus(), 400);
+}
+function cancelAddGoal() {
+  document.getElementById('add-goal-backdrop').style.display = 'none';
+  document.getElementById('add-goal-sheet').classList.remove('open');
+}
+function confirmAddGoal() {
+  const name = document.getElementById('add-goal-input').value.trim();
+  if (!name) { document.getElementById('add-goal-input').focus(); return; }
+  const app  = loadApp();
+  const goal = createGoal(name);
+  app.goals.push(goal);
+  app.activeGoalId = goal.id;
+  saveApp(app);
+  cancelAddGoal();
+  renderGoalPills();
+  updateHome();
+  setTimeout(() => {
+    const pills = document.getElementById('goal-pills');
+    pills.scrollLeft = pills.scrollWidth;
+  }, 100);
+}
+
+// ─── Celebration ───────────────────────────────────────────────
+function showCel(streak) {
+  const c = CEL[streak];
+  document.getElementById('cel-emoji').textContent = c.emoji;
+  document.getElementById('cel-title').textContent = c.title;
+  document.getElementById('cel-msg').textContent   = c.msg;
+  document.getElementById('celebration').classList.add('show');
+  spawnConfetti(c.confetti);
+}
+function closeCel() { document.getElementById('celebration').classList.remove('show'); }
+
+function spawnConfetti(n) {
+  const colors = ['#6c63ff','#a78bfa','#43e97b','#ffd700','#f64f59','#38bdf8','#fb7185'];
+  for (let i = 0; i < n; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti';
+    el.style.cssText = `left:${Math.random()*100}vw;top:-10px;` +
+      `background:${colors[Math.random()*colors.length|0]};` +
+      `animation-duration:${1.4+Math.random()*2}s;` +
+      `animation-delay:${Math.random()*0.9}s;`;
+    document.body.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+  }
+}
+
+// ─── History UI ────────────────────────────────────────────────
+function updateHistory() {
+  const goal   = activeGoal();
+  const streak = calcStreak(goal.checkins);
+  const total  = Object.keys(goal.checkins).length;
+  const today  = todayStr();
+
+  document.getElementById('hist-goal-name').textContent = goal.name + ' の記録';
+  document.getElementById('h-streak').textContent = streak + '日';
+  document.getElementById('h-best').textContent   = goal.bestStreak + '日';
+  document.getElementById('h-total').textContent  = total + '日';
+
+  const dates = Object.keys(goal.checkins).sort().reverse();
+  document.getElementById('h-last').textContent = dates.length ? jpDate(dates[0]) : '—';
+
+  const DOW = ['日','月','火','水','木','金','土'];
+  document.getElementById('cal-headers').innerHTML =
+    DOW.map(d => `<div class="cal-dh">${d}</div>`).join('');
+
+  const [year, mon1] = today.split('-').map(Number);
+  const month = mon1 - 1;
+  const firstDay = new Date(year, month, 1);
+  const lastDate = new Date(year, month + 1, 0).getDate();
+  document.getElementById('cal-month').textContent = `${year}年${mon1}月`;
+
+  const dow = firstDay.getDay();
+  let html  = '<div class="cal-day empty"></div>'.repeat(dow);
+  for (let d = 1; d <= lastDate; d++) {
+    const ds  = `${year}-${pad(mon1)}-${pad(d)}`;
+    const isT = ds === today;
+    const isC = !!goal.checkins[ds];
+    const isM = isC && goal.checkins[ds].memo;
+    const cls = ['cal-day', isT?'today':'', isC?'checked':'', isM?'has-memo':''].filter(Boolean).join(' ');
+    const tap = isC ? `onclick="showDayPopup('${ds}')"` : '';
+    html += `<div class="${cls}" ${tap}>${d}</div>`;
+  }
+  document.getElementById('cal-days').innerHTML = html;
+
+  if (goal.pastStreaks && goal.pastStreaks.length) {
+    document.getElementById('past-card').style.display = '';
+    document.getElementById('past-list').innerHTML =
+      goal.pastStreaks.slice(-5).reverse().map(s =>
+        `<div class="rec-item">
+          <span class="rec-label">${jpDate(s.start)} 〜 ${jpDate(s.end)}</span>
+          <span class="rec-value">${s.length}日</span>
+        </div>`
+      ).join('');
+  } else {
+    document.getElementById('past-card').style.display = 'none';
+  }
+}
+
+function showDayPopup(ds) {
+  const ci = activeGoal().checkins[ds];
+  if (!ci) return;
+  document.getElementById('popup-date').textContent = jpDate(ds);
+  document.getElementById('popup-memo').textContent = ci.memo || '（メモなし）';
+  const el = document.getElementById('day-popup');
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+}
+function closeDayPopup() { document.getElementById('day-popup').classList.remove('show'); }
+
+document.addEventListener('click', e => {
+  const p = document.getElementById('day-popup');
+  if (p.classList.contains('show') && !p.contains(e.target) && !e.target.classList.contains('cal-day'))
+    closeDayPopup();
+});
+
+// ─── Settings UI ───────────────────────────────────────────────
+function updateSettings() {
+  const app = loadApp();
+  const list = document.getElementById('goal-settings-list');
+  const canDelete = app.goals.length > 1;
+
+  list.innerHTML = app.goals.map(g => `
+    <div class="goal-list-item">
+      <div class="goal-active-dot ${g.id === app.activeGoalId ? '' : 'inactive'}"
+           onclick="switchGoalSettings('${g.id}')" title="この目標を選択" style="cursor:pointer"></div>
+      <input class="goal-name-input" value="${escHtml(g.name)}"
+             onchange="renameGoal('${g.id}', this.value)"
+             placeholder="目標名" maxlength="20">
+      ${canDelete
+        ? `<button class="goal-delete-btn" onclick="deleteGoal('${g.id}')" title="削除">🗑️</button>`
+        : '<div style="width:29px"></div>'}
+    </div>
+  `).join('');
+}
+
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+function switchGoalSettings(id) {
+  setActiveGoal(id);
+  renderGoalPills();
+  updateHome();
+  updateSettings();
+}
+
+function renameGoal(id, newName) {
+  const name = newName.trim() || '目標';
+  const app  = loadApp();
+  const g    = app.goals.find(g => g.id === id);
+  if (g) { g.name = name; saveApp(app); }
+  renderGoalPills();
+  updateHome();
+}
+
+function deleteGoal(id) {
+  const app = loadApp();
+  if (app.goals.length <= 1) return;
+  const g = app.goals.find(g => g.id === id);
+  if (!confirm(`「${g?.name}」を削除しますか？\nこの目標のすべての記録が消えます。`)) return;
+  app.goals = app.goals.filter(g => g.id !== id);
+  if (app.activeGoalId === id) app.activeGoalId = app.goals[0].id;
+  saveApp(app);
+  renderGoalPills();
+  updateHome();
+  updateSettings();
+}
+
+function confirmReset() {
+  if (!confirm('新しいチャレンジを始めますか？\n\n現在の連続記録は「過去の記録」として保存されます。')) return;
+  const goal   = activeGoal();
+  const streak = calcStreak(goal.checkins);
+  if (streak > 0) {
+    const sorted = Object.keys(goal.checkins).sort();
+    const end    = sorted[sorted.length - 1];
+    const start  = offsetDate(end, -(streak - 1));
+    if (!goal.pastStreaks) goal.pastStreaks = [];
+    goal.pastStreaks.push({ start, end, length: streak });
+  }
+  goal.checkins = {};
+  updateGoal(goal);
+  updateHome();
+  switchTab('home');
+}
+
+// ─── Tab Navigation ────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.getElementById('tab-'    + name).classList.add('active');
+  if (name === 'history')  updateHistory();
+  if (name === 'settings') updateSettings();
+}
+
+// ─── Init ──────────────────────────────────────────────────────
+document.getElementById('add-goal-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') confirmAddGoal();
+});
+
+renderGoalPills();
+updateHome();
