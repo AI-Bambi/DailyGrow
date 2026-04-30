@@ -62,8 +62,9 @@ function saveApp(app) { localStorage.setItem(STORE, JSON.stringify(app)); }
 
 function activeGoal() {
   const app = loadApp();
-  if (!app.goals.length) return null;
-  return app.goals.find(g => g.id === app.activeGoalId) || app.goals[0];
+  const active = app.goals.filter(g => !g.archived);
+  if (!active.length) return null;
+  return active.find(g => g.id === app.activeGoalId) || active[0];
 }
 
 function updateGoal(updated) {
@@ -371,10 +372,11 @@ function nextMilestone(n) { return MILESTONES.find(m => n < m) || null; }
 
 // ─── Goal Pill Tabs ────────────────────────────────────────────
 function renderGoalPills() {
-  const app   = loadApp();
-  const pills = document.getElementById('goal-pills');
-  if (!app.goals.length) { pills.innerHTML = ''; return; }
-  pills.innerHTML = app.goals.map(g =>
+  const app    = loadApp();
+  const active = app.goals.filter(g => !g.archived);
+  const pills  = document.getElementById('goal-pills');
+  if (!active.length) { pills.innerHTML = ''; return; }
+  pills.innerHTML = active.map(g =>
     `<button class="goal-pill${g.id === app.activeGoalId ? ' active' : ''}"
              onclick="switchGoal('${g.id}')">${escHtml(g.name)}</button>`
   ).join('') +
@@ -616,17 +618,19 @@ document.addEventListener('click', e => {
 // ─── Settings UI ───────────────────────────────────────────────
 function updateSettings() {
   renderPlanSettingsList();
-  const app = loadApp();
-  const list = document.getElementById('goal-settings-list');
-  const canDelete = app.goals.length > 1;
+  const app         = loadApp();
+  const activeGoals = app.goals.filter(g => !g.archived);
+  const canDelete   = activeGoals.length > 1;
+  const list        = document.getElementById('goal-settings-list');
 
-  list.innerHTML = app.goals.map(g => `
+  list.innerHTML = activeGoals.map(g => `
     <div class="goal-list-item">
       <div class="goal-active-dot ${g.id === app.activeGoalId ? '' : 'inactive'}"
            onclick="switchGoalSettings('${g.id}')" title="この目標を選択" style="cursor:pointer"></div>
       <input class="goal-name-input" value="${escHtml(g.name)}"
              onchange="renameGoal('${g.id}', this.value)"
              placeholder="目標名" maxlength="20">
+      <button class="achieve-btn" onclick="achieveGoal('${g.id}')" title="目標達成">🏆</button>
       ${canDelete
         ? `<button class="goal-delete-btn" onclick="deleteGoal('${g.id}')" title="削除">🗑️</button>`
         : '<div style="width:29px"></div>'}
@@ -691,6 +695,46 @@ function switchTab(name) {
   document.getElementById('tab-'    + name).classList.add('active');
   if (name === 'history')  updateHistory();
   if (name === 'settings') updateSettings();
+}
+
+// ─── Achievement ───────────────────────────────────────────────
+function achieveGoal(id) {
+  const app = loadApp();
+  const g   = app.goals.find(goal => goal.id === id);
+  if (!g) return;
+  if (!confirm(`「${g.name}」を達成しましたか？\n🏆 記録はそのまま残ります！`)) return;
+  g.archived   = true;
+  g.achievedAt = todayStr();
+  saveApp(app);
+  showAchievementCel(g);
+}
+
+function showAchievementCel(goal) {
+  const total  = Object.keys(goal.checkins).length;
+  const best   = goal.bestStreak;
+  document.getElementById('ach-name').textContent  = goal.name;
+  document.getElementById('ach-stats').textContent =
+    `累計 ${total}日 チェック ／ 最高 ${best}日 連続`;
+  document.getElementById('achievement-cel').classList.add('show');
+  spawnConfetti(150);
+}
+
+function closeAchievementCel() {
+  document.getElementById('achievement-cel').classList.remove('show');
+  const app      = loadApp();
+  const remaining = app.goals.filter(g => !g.archived);
+  if (!remaining.length) {
+    showWelcomeSheet();
+    return;
+  }
+  if (!remaining.find(g => g.id === app.activeGoalId)) {
+    app.activeGoalId = remaining[0].id;
+    saveApp(app);
+  }
+  renderGoalPills();
+  updateHome();
+  updateSettings();
+  switchTab('home');
 }
 
 // ─── Welcome Sheet ─────────────────────────────────────────────

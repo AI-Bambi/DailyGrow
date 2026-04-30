@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>GoalTrack</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -244,6 +244,16 @@
   <div class="cel-title" id="cel-title"></div>
   <div class="cel-msg"   id="cel-msg"></div>
   <button class="cel-close" onclick="closeCel()">やったー！</button>
+</div>
+
+<!-- ═══ ACHIEVEMENT CELEBRATION ═══ -->
+<div id="achievement-cel">
+  <div class="ach-trophy">🏆</div>
+  <div class="ach-title">目標達成！</div>
+  <div class="ach-name" id="ach-name"></div>
+  <div class="ach-stats" id="ach-stats"></div>
+  <div class="ach-msg">記録はずっと残ります。<br>本当によく頑張りました！</div>
+  <button class="cel-close" onclick="closeAchievementCel()">ありがとう！🎊</button>
 </div>
 
 <script src="app.js"></script>
