@@ -769,7 +769,7 @@ function updateSettings() {
       <div class="goal-item-main">
         <div class="goal-dot-wrap"
              onclick="onGoalDotClick('${g.id}')"
-             ontouchstart="startColorPress('${g.id}', event)"
+             ontouchstart="startColorPress('${g.id}')"
              ontouchend="cancelColorPress()"
              ontouchmove="cancelColorPress()"
              onmousedown="startColorPress('${g.id}')"
@@ -829,8 +829,7 @@ function renameGoal(id, newName) {
 
 let _colorPressTimer = null, _colorLongPressed = false;
 
-function startColorPress(id, e) {
-  if (e) e.preventDefault();
+function startColorPress(id) {
   _colorLongPressed = false;
   _colorPressTimer = setTimeout(() => {
     _colorLongPressed = true;
