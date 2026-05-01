@@ -781,6 +781,10 @@ function updateSettings() {
           ? `<button class="goal-delete-btn" onclick="deleteGoal('${g.id}')" title="削除">🗑️</button>`
           : '<div style="width:29px"></div>'}
       </div>
+      <div class="goal-item-color">
+        ${GOAL_COLORS.map(c => `<button class="color-dot-sm${g.color === c ? ' selected' : ''}"
+          style="background:${c}" onclick="changeGoalColor('${g.id}','${c}')"></button>`).join('')}
+      </div>
       <div class="goal-item-deadline">
         <label class="deadline-inline-label">
           <span class="deadline-inline-icon">📅</span>
@@ -813,6 +817,15 @@ function renameGoal(id, newName) {
   if (g) { g.name = name; saveApp(app); }
   renderGoalPills();
   updateHome();
+}
+
+function changeGoalColor(id, color) {
+  const app = loadApp();
+  const g   = app.goals.find(g => g.id === id);
+  if (g) { g.color = color; saveApp(app); }
+  renderGoalPills();
+  updateHome();
+  updateSettings();
 }
 
 function updateGoalDeadline(id, value) {
