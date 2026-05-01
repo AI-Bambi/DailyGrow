@@ -767,7 +767,15 @@ function updateSettings() {
   list.innerHTML = activeGoals.map(g => `
     <div class="goal-list-item">
       <div class="goal-item-main">
-        <div class="goal-dot-wrap" onclick="switchGoalSettings('${g.id}')" title="この目標を選択">
+        <div class="goal-dot-wrap"
+             onclick="onGoalDotClick('${g.id}')"
+             ontouchstart="startColorPress('${g.id}', event)"
+             ontouchend="cancelColorPress()"
+             ontouchmove="cancelColorPress()"
+             onmousedown="startColorPress('${g.id}')"
+             onmouseup="cancelColorPress()"
+             onmouseleave="cancelColorPress()"
+             title="長押しで色を変更">
           <div class="goal-active-dot ${g.id === app.activeGoalId ? '' : 'inactive'}"
                style="${g.id === app.activeGoalId ? `background:${g.color}` : ''}"></div>
         </div>
@@ -780,6 +788,10 @@ function updateSettings() {
         ${canDelete
           ? `<button class="goal-delete-btn" onclick="deleteGoal('${g.id}')" title="削除">🗑️</button>`
           : '<div style="width:29px"></div>'}
+      </div>
+      <div class="goal-item-color" id="color-row-${g.id}" style="display:none">
+        ${GOAL_COLORS.map(c => `<button class="color-dot-sm${g.color === c ? ' selected' : ''}"
+          style="background:${c}" onclick="changeGoalColor('${g.id}','${c}')"></button>`).join('')}
       </div>
       <div class="goal-item-deadline">
         <label class="deadline-inline-label">
@@ -813,6 +825,34 @@ function renameGoal(id, newName) {
   if (g) { g.name = name; saveApp(app); }
   renderGoalPills();
   updateHome();
+}
+
+let _colorPressTimer = null, _colorLongPressed = false;
+
+function startColorPress(id, e) {
+  if (e) e.preventDefault();
+  _colorLongPressed = false;
+  _colorPressTimer = setTimeout(() => {
+    _colorLongPressed = true;
+    const row = document.getElementById('color-row-' + id);
+    if (row) row.style.display = row.style.display === 'flex' ? 'none' : 'flex';
+  }, 500);
+}
+function cancelColorPress() { clearTimeout(_colorPressTimer); }
+function onGoalDotClick(id) {
+  if (_colorLongPressed) { _colorLongPressed = false; return; }
+  switchGoalSettings(id);
+}
+
+function changeGoalColor(id, color) {
+  const app = loadApp();
+  const g   = app.goals.find(g => g.id === id);
+  if (g) { g.color = color; saveApp(app); }
+  const row = document.getElementById('color-row-' + id);
+  if (row) row.style.display = 'none';
+  renderGoalPills();
+  updateHome();
+  updateSettings();
 }
 
 function updateGoalDeadline(id, value) {
