@@ -405,16 +405,33 @@ function calcStreak(checkins) {
   return n;
 }
 
-const MILESTONES = [3, 7, 30, 100];
+const MILESTONES = [3, 7, 30, 100, 200, 365];
 
 const CEL = {
   3:   { emoji:'⭐', title:'3日連続！すごい！',   msg:'3日間、ちゃんと続けた。\nそれだけで十分すごいことだよ！\n次は7日を目指そう🎯', confetti:40 },
   7:   { emoji:'🔥', title:'1週間連続！！',       msg:'7日間も続けたなんて最高すぎる！\n毎日コツコツ積み上げた証拠だね。\nこの調子でいこう！💪', confetti:60 },
   30:  { emoji:'🏆', title:'30日達成！！！',      msg:'1ヶ月間、本当によく頑張った！！\n毎日継続するって難しいのに、\nあなたはやりきった！素晴らしい🎊', confetti:90 },
-  100: { emoji:'🌟', title:'100日連続！！！！！', msg:'100日！！！！！\nこれはもう習慣が身についた証拠。\nあなたは本物だ。本当におめでとう！！\n🎆🎆🎆🎆🎆', confetti:150 },
+  100: { emoji:'🌟', title:'100日連続！！！！！',     msg:'100日！！！！！\nこれはもう習慣が身についた証拠。\nあなたは本物だ。本当におめでとう！！\n🎆🎆🎆🎆🎆', confetti:150 },
+  200: { emoji:'🎆', title:'200日連続！！！！！',     msg:'200日！！\n半年以上、毎日積み上げ続けた。\nこの継続力、本当に誇っていい！\n🎆🎆🎆🎆🎆🎆🎆', confetti:180 },
+  365: { emoji:'🎊', title:'365日達成！！！！！！！', msg:'1年間、毎日続けた！！！\nこれはもう人生が変わったと言っていい。\nあなたの努力は本物だ。\n心からおめでとう！！🎊🎊🎊🎊🎊', confetti:220 },
 };
 
+function getCelData(n) {
+  if (CEL[n]) return CEL[n];
+  if (n > 365 && n % 100 === 0) {
+    return {
+      emoji: '🎆',
+      title: `${n}日連続！！`,
+      msg: `${n}日間！！\n続け続けるあなたは本物だ。\nこれからも一緒に積み上げよう🎆🎆🎆`,
+      confetti: 150,
+    };
+  }
+  return null;
+}
+
 function streakVisual(n) {
+  if (n >= 365) { const y = Math.floor(n / 365); return { emoji:'🎊', msg:`${y}年以上継続中！もはや伝説だ！`, sub:`${n}日 🎊` }; }
+  if (n >= 200) return { emoji:'🎆', msg:'200日以上継続中！信じられない継続力！', sub:`${n}日 — 本物の習慣だ！` };
   if (n >= 100) return { emoji:'🌟', msg:'伝説の域に達した！これが本物の継続力！', sub:`${n}日 🎆` };
   if (n >= 30)  return { emoji:'🏆', msg:'1ヶ月以上継続中！もう習慣になってるね！', sub:`${n}日 — 驚異の継続力！` };
   if (n >= 7)   return { emoji:'🔥', msg:'1週間以上続いてる！最高すぎる！', sub:`${n}日 — この調子で行こう！` };
@@ -423,7 +440,11 @@ function streakVisual(n) {
   return { emoji:'💪', msg:'今日もやり遂げた！えらい！', sub:`${n}日 — 着実に積み上げ中！` };
 }
 
-function nextMilestone(n) { return MILESTONES.find(m => n < m) || null; }
+function nextMilestone(n) {
+  const next = MILESTONES.find(m => n < m);
+  if (next) return next;
+  return Math.ceil((n + 1) / 100) * 100;
+}
 
 // ─── Goal Pill Tabs ────────────────────────────────────────────
 function renderGoalPills() {
@@ -483,7 +504,8 @@ function updateHome() {
     fill.style.width = '100%';
     lbl.textContent  = '全マイルストーン達成！🌟';
   } else {
-    const prev = MILESTONES[MILESTONES.indexOf(next) - 1] ?? 0;
+    const nextIdx = MILESTONES.indexOf(next);
+    const prev = nextIdx >= 0 ? (MILESTONES[nextIdx - 1] ?? 0) : next - 100;
     fill.style.width = Math.round(((streak - prev) / (next - prev)) * 100) + '%';
     lbl.textContent  = `${next}日まであと${next - streak}日`;
   }
@@ -546,7 +568,7 @@ function startCheckin(planId = null) {
   if (prevStreak === 0 && hadBefore) showRestartToast();
 
   setTimeout(() => openMemoSheet(), 350);
-  if (CEL[newStreak]) setTimeout(() => showCel(newStreak), 2200);
+  if (getCelData(newStreak)) setTimeout(() => showCel(newStreak), 2200);
 }
 
 function openMemoSheet() {
@@ -618,7 +640,8 @@ function confirmAddGoal() {
 
 // ─── Celebration ───────────────────────────────────────────────
 function showCel(streak) {
-  const c = CEL[streak];
+  const c = getCelData(streak);
+  if (!c) return;
   document.getElementById('cel-emoji').textContent = c.emoji;
   document.getElementById('cel-title').textContent = c.title;
   document.getElementById('cel-msg').textContent   = c.msg;
