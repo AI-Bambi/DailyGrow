@@ -1,7 +1,7 @@
-# Goal Track - Xcode セットアップ・実行ガイド
+# DailyGrow - Xcode セットアップ・実行ガイド
 
 > **現在の状況**：開発者は Windows PC 環境のため、このガイドは **Mac 環境が揃い次第** 参照してください。
-> 現時点での動作確認は `ForIphone/`（iPhone PWA）および `Test/`（PC ブラウザ）で行っています。
+> 現時点での動作確認は `Foriphone/`（iPhone PWA・PC ブラウザ共用）で行っています。
 
 ## ⚠️ 前提条件
 
@@ -30,7 +30,7 @@ xcode-select --install
 3. **iOS** を選択
 4. **App** テンプレートを選択
 5. 以下の情報を入力：
-   - **Product Name**: `GoalTrack`
+   - **Product Name**: `DailyGrow`
    - **Team**: （Apple Developer アカウント不要）
    - **Organization Identifier**: `com.example` など任意の値
    - **Language**: **Swift**

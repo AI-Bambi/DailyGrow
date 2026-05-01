@@ -199,7 +199,7 @@ body {
 }
 
 /* ── Stats ── */
-.stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+.stats-row { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
 .stat-card {
   background: var(--surface2); border-radius: 12px;
   padding: 12px 10px; text-align: center;
@@ -337,7 +337,17 @@ body {
 }
 
 /* ── History ── */
-.cal-month { font-size: 15px; font-weight: 700; margin-bottom: 14px; }
+.cal-month {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 15px; font-weight: 700; margin-bottom: 14px;
+}
+.cal-nav-btn {
+  background: none; border: none;
+  color: var(--accent); font-size: 16px; cursor: pointer;
+  padding: 4px 10px; border-radius: 8px; transition: background 0.15s;
+}
+.cal-nav-btn:active { background: rgba(245,166,35,0.12); }
+.cal-nav-btn.disabled { color: var(--muted); cursor: default; }
 .cal-grid  { display: grid; grid-template-columns: repeat(7,1fr); gap: 5px; }
 .cal-dh    { text-align: center; font-size: 11px; color: var(--muted); padding: 3px 0; }
 .cal-day   {
@@ -616,6 +626,12 @@ body {
   color: var(--accent-soft);
   background: rgba(245,166,35,0.06);
   border-color: rgba(245,166,35,0.2);
+}
+.deadline-display.very-close {
+  color: #f5a623;
+  background: rgba(245,166,35,0.12);
+  border-color: rgba(245,166,35,0.4);
+  font-weight: 600;
 }
 
 /* ── Animations ── */

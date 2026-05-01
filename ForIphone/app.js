@@ -97,7 +97,7 @@ function loadApp() {
     const raw = JSON.parse(localStorage.getItem(STORE) || 'null');
     if (!raw) return freshApp();
     if (!raw.version) {            // migrate v1 → v2
-      const g = createGoal(raw.goalName || 'GoalTrack');
+      const g = createGoal(raw.goalName || 'DailyGrow');
       (raw.checkins || []).forEach(d => { g.checkins[d] = { memo: '' }; });
       g.bestStreak = raw.bestStreak || 0;
       g.pastStreaks = raw.pastStreaks || [];
@@ -469,7 +469,6 @@ function updateHome() {
   document.getElementById('hero-msg').textContent   = v.msg;
   document.getElementById('hero-sub').textContent   = v.sub;
 
-  document.getElementById('s-streak').textContent = streak;
   document.getElementById('s-best').textContent   = goal.bestStreak;
   document.getElementById('s-total').textContent  = total;
 
@@ -492,21 +491,23 @@ function updateHome() {
   const deadlineEl = document.getElementById('deadline-display');
   if (goal.deadline) {
     const daysLeft = deadlineDaysLeft(goal.deadline);
-    let text, approaching = false;
-    if (daysLeft > 1) {
+    let text, cls = 'deadline-display';
+    if (daysLeft > 7) {
       text = `📅 ${formatDeadlineDateShort(goal.deadline)}まで　あと${daysLeft}日`;
-      approaching = daysLeft <= 7;
-    } else if (daysLeft === 1) {
-      text = `📅 ${formatDeadlineDateShort(goal.deadline)}まで　あと1日`;
-      approaching = true;
+    } else if (daysLeft > 3) {
+      text = `📅 ${formatDeadlineDateShort(goal.deadline)}まで　あと${daysLeft}日　もうすぐ！`;
+      cls += ' approaching';
+    } else if (daysLeft > 0) {
+      text = `📅 ${formatDeadlineDateShort(goal.deadline)}まで　あと${daysLeft}日　ラストスパート！`;
+      cls += ' very-close';
     } else if (daysLeft === 0) {
-      text = `📅 今日が期限日！`;
-      approaching = true;
+      text = `📅 今日が期限日！ラストスパート！`;
+      cls += ' very-close';
     } else {
       text = `📅 ${formatDeadlineDateShort(goal.deadline)}が期限でした`;
     }
     deadlineEl.textContent = text;
-    deadlineEl.className = 'deadline-display' + (approaching ? ' approaching' : '');
+    deadlineEl.className = cls;
     deadlineEl.style.display = '';
   } else {
     deadlineEl.style.display = 'none';
@@ -640,6 +641,23 @@ function spawnConfetti(n) {
   }
 }
 
+// ─── Calendar State ────────────────────────────────────────────
+let _calYear  = null;
+let _calMonth = null;
+
+function prevCalMonth() {
+  if (_calMonth === 0) { _calMonth = 11; _calYear--; }
+  else _calMonth--;
+  updateHistory();
+}
+function nextCalMonth() {
+  const now = gameDay();
+  if (_calYear === now.getUTCFullYear() && _calMonth === now.getUTCMonth()) return;
+  if (_calMonth === 11) { _calMonth = 0; _calYear++; }
+  else _calMonth++;
+  updateHistory();
+}
+
 // ─── History UI ────────────────────────────────────────────────
 function updateHistory() {
   const goal   = activeGoal();
@@ -659,11 +677,18 @@ function updateHistory() {
   document.getElementById('cal-headers').innerHTML =
     DOW.map(d => `<div class="cal-dh">${d}</div>`).join('');
 
-  const [year, mon1] = today.split('-').map(Number);
-  const month = mon1 - 1;
+  const nowD = gameDay();
+  const nowYear = nowD.getUTCFullYear(), nowMonth = nowD.getUTCMonth();
+  if (_calYear === null) { _calYear = nowYear; _calMonth = nowMonth; }
+  const year = _calYear, month = _calMonth, mon1 = month + 1;
+  const isCurrentMonth = (year === nowYear && month === nowMonth);
+
   const firstDay = new Date(year, month, 1);
   const lastDate = new Date(year, month + 1, 0).getDate();
-  document.getElementById('cal-month').textContent = `${year}年${mon1}月`;
+  document.getElementById('cal-month').innerHTML =
+    `<button class="cal-nav-btn" onclick="prevCalMonth()">◀</button>` +
+    `<span>${year}年${mon1}月</span>` +
+    `<button class="cal-nav-btn${isCurrentMonth ? ' disabled' : ''}" onclick="nextCalMonth()">▶</button>`;
 
   const dow = firstDay.getDay();
   let html  = '<div class="cal-day empty"></div>'.repeat(dow);
@@ -823,20 +848,32 @@ function achieveGoal(id) {
   const g   = app.goals.find(goal => goal.id === id);
   if (!g) return;
   if (!confirm(`「${g.name}」を達成しましたか？\n🏆 記録はそのまま残ります！`)) return;
+  const withinDeadline = !!(g.deadline && todayStr() <= g.deadline);
   g.archived   = true;
   g.achievedAt = todayStr();
   saveApp(app);
-  showAchievementCel(g);
+  showAchievementCel(g, withinDeadline);
 }
 
-function showAchievementCel(goal) {
+function showAchievementCel(goal, withinDeadline = false) {
   const total  = Object.keys(goal.checkins).length;
   const best   = goal.bestStreak;
   document.getElementById('ach-name').textContent  = goal.name;
   document.getElementById('ach-stats').textContent =
     `累計 ${total}日 チェック ／ 最高 ${best}日 連続`;
+  if (withinDeadline) {
+    document.getElementById('ach-trophy').textContent = '🎯';
+    document.getElementById('ach-title').textContent  = '期限内達成！';
+    document.getElementById('ach-msg').innerHTML =
+      '計画通りにやり遂げた！<br>その集中力、本当に素晴らしい！🎊';
+  } else {
+    document.getElementById('ach-trophy').textContent = '🏆';
+    document.getElementById('ach-title').textContent  = '目標達成！';
+    document.getElementById('ach-msg').innerHTML =
+      '記録はずっと残ります。<br>本当によく頑張りました！';
+  }
   document.getElementById('achievement-cel').classList.add('show');
-  spawnConfetti(150);
+  spawnConfetti(withinDeadline ? 200 : 150);
 }
 
 function closeAchievementCel() {

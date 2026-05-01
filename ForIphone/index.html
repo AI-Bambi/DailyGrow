@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="GoalTrack">
-  <title>GoalTrack</title>
+  <meta name="apple-mobile-web-app-title" content="DailyGrow">
+  <title>DailyGrow</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -16,7 +16,7 @@
   <div id="screen-home" class="screen active">
     <div class="screen-header">
       <div>
-        <h1>GoalTrack</h1>
+        <h1>DailyGrow</h1>
         <div class="sub" id="today-label"></div>
       </div>
     </div>
@@ -53,10 +53,6 @@
     </div>
 
     <div class="stats-row">
-      <div class="stat-card">
-        <div class="stat-value" id="s-streak">0</div>
-        <div class="stat-label">現在の<br>連続日数</div>
-      </div>
       <div class="stat-card">
         <div class="stat-value" id="s-best">0</div>
         <div class="stat-label">最高<br>記録</div>
@@ -112,16 +108,8 @@
 
   <!-- ═══ SETTINGS ═══ -->
   <div id="screen-settings" class="screen">
-    <div class="screen-header"><h1>設定</h1></div>
+    <div class="screen-header"><h1>管理</h1></div>
     <div class="screen-body">
-      <div class="card">
-        <div class="set-label">目標一覧</div>
-        <div id="goal-settings-list"></div>
-        <div class="add-goal-row" onclick="openAddGoalSheet()">
-          <span>＋</span><span>目標を追加</span>
-        </div>
-      </div>
-
       <div class="card">
         <div class="set-label">プラン管理（選択中の目標）</div>
         <div class="plan-mode-tabs">
@@ -148,6 +136,14 @@
       </div>
 
       <div class="card">
+        <div class="set-label">目標一覧</div>
+        <div id="goal-settings-list"></div>
+        <div class="add-goal-row" onclick="openAddGoalSheet()">
+          <span>＋</span><span>目標を追加</span>
+        </div>
+      </div>
+
+      <div class="card">
         <div class="set-label">データ管理（選択中の目標）</div>
         <p class="danger-note">
           リセットしても、これまでの努力は消えません。<br>
@@ -157,7 +153,6 @@
       </div>
 
       <div class="card" style="text-align:center; color:var(--muted); font-size:12px; padding:14px;">
-        GoalTrack v3.0（HTML プロトタイプ）<br>
         データはこのブラウザに保存されます<br>
         <button onclick="location.reload()" style="margin-top:10px; background:none; border:1px solid rgba(255,255,255,0.15); border-radius:8px; color:var(--muted); font-size:12px; padding:6px 16px; cursor:pointer;">🔄 アプリを更新</button>
       </div>
@@ -173,7 +168,7 @@
       <span class="icon">📅</span><span>履歴</span>
     </button>
     <button class="tab-btn"        id="tab-settings" onclick="switchTab('settings')">
-      <span class="icon">⚙️</span><span>設定</span>
+      <span class="icon">⚙️</span><span>管理</span>
     </button>
   </div>
 </div>
@@ -182,9 +177,9 @@
 <div id="memo-backdrop"     class="sheet-backdrop" onclick="skipMemo()"></div>
 <div id="memo-sheet"        class="bottom-sheet">
   <div class="sheet-handle"></div>
-  <div class="sheet-title">今日のメモ（任意）</div>
-  <div class="sheet-sub">何をしたか、一言残しておこう</div>
-  <textarea id="memo-input" placeholder="例：英単語50個覚えた、問題集10ページ…" maxlength="200"></textarea>
+  <div class="sheet-title">どうだった？</div>
+  <div class="sheet-sub">感想や気づきを残しておこう</div>
+  <textarea id="memo-input" placeholder="例：思ったよりサクサク進んだ、今日は集中できた…" maxlength="200"></textarea>
   <div class="sheet-btns">
     <button class="sheet-btn btn-secondary" onclick="skipMemo()">スキップ</button>
     <button class="sheet-btn btn-primary"   onclick="saveMemo()">保存する</button>
@@ -243,7 +238,7 @@
 <div id="welcome-sheet" class="bottom-sheet">
   <div class="sheet-handle"></div>
   <div class="welcome-emoji">🎯</div>
-  <div class="sheet-title">GoalTrack へようこそ！</div>
+  <div class="sheet-title">DailyGrow へようこそ！</div>
   <div class="sheet-sub">習慣にしたいことを入力してください</div>
   <div class="color-picker" id="welcome-color-picker"></div>
   <input id="welcome-goal-input" type="text" placeholder="例: 筋トレ、読書、資格勉強…" maxlength="20">
@@ -269,11 +264,11 @@
 
 <!-- ═══ ACHIEVEMENT CELEBRATION ═══ -->
 <div id="achievement-cel">
-  <div class="ach-trophy">🏆</div>
-  <div class="ach-title">目標達成！</div>
+  <div class="ach-trophy" id="ach-trophy">🏆</div>
+  <div class="ach-title" id="ach-title">目標達成！</div>
   <div class="ach-name" id="ach-name"></div>
   <div class="ach-stats" id="ach-stats"></div>
-  <div class="ach-msg">記録はずっと残ります。<br>本当によく頑張りました！</div>
+  <div class="ach-msg" id="ach-msg">記録はずっと残ります。<br>本当によく頑張りました！</div>
   <button class="cel-close" onclick="closeAchievementCel()">ありがとう！🎊</button>
 </div>
 
