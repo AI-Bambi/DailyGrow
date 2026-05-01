@@ -877,6 +877,40 @@ function deleteGoal(id) {
   updateSettings();
 }
 
+function exportData() {
+  const data = localStorage.getItem(STORE);
+  if (!data) { alert('バックアップするデータがありません。'); return; }
+  const blob = new Blob([data], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `dailygrow_backup_${todayStr()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      if (!parsed.version || !Array.isArray(parsed.goals)) {
+        alert('このファイルはDailyGrowのバックアップではありません。');
+        return;
+      }
+      if (!confirm('バックアップから復元しますか？\n現在のデータは上書きされます。')) return;
+      localStorage.setItem(STORE, JSON.stringify(parsed));
+      location.reload();
+    } catch {
+      alert('ファイルの読み込みに失敗しました。');
+    }
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
 function confirmReset() {
   if (!confirm('新しいチャレンジを始めますか？\n\n現在の連続記録は「過去の記録」として保存されます。')) return;
   const goal   = activeGoal();

@@ -153,9 +153,20 @@
         <button class="danger-btn" onclick="confirmReset()">🔄 新しいチャレンジを始める</button>
       </div>
 
-      <div class="card" style="text-align:center; color:var(--muted); font-size:12px; padding:14px;">
-        データはこのブラウザに保存されます<br>
-        <button onclick="location.reload()" style="margin-top:10px; background:none; border:1px solid rgba(255,255,255,0.15); border-radius:8px; color:var(--muted); font-size:12px; padding:6px 16px; cursor:pointer;">🔄 アプリを更新</button>
+      <div class="card">
+        <div class="set-label">バックアップ・復元（全目標）</div>
+        <p class="danger-note">
+          データはこのブラウザにのみ保存されます。<br>
+          定期的にバックアップを保存しておきましょう。
+        </p>
+        <button class="backup-btn" onclick="exportData()">📥 バックアップをダウンロード</button>
+        <label class="restore-btn">
+          📤 バックアップから復元
+          <input type="file" accept=".json" style="display:none" onchange="importData(this)">
+        </label>
+        <div style="text-align:center; margin-top:14px;">
+          <button onclick="location.reload()" style="background:none; border:1px solid rgba(255,255,255,0.15); border-radius:8px; color:var(--muted); font-size:12px; padding:6px 16px; cursor:pointer;">🔄 アプリを更新</button>
+        </div>
       </div>
     </div>
   </div>
