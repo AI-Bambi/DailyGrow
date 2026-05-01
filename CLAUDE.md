@@ -3,11 +3,10 @@
 ## プロジェクト概要
 学習と習慣形成をサポートするアプリケーション。ユーザーの達成度や努力を褒めることで、モチベーションを維持し、習慣化を促進する。
 
-- **`Test/`**：Windows PC のブラウザで動作確認するための Web プロトタイプ
-- **`ForIphone/`**：iPhone Safari / PWA 向けに最適化した Web プロトタイプ（`Test/` とは別管理）
+- **`Foriphone/`**：iPhone Safari / PWA 向けに最適化した Web プロトタイプ（メイン開発フォルダ）
 - **`iOS/`**：Swift/SwiftUI による将来の iOS ネイティブアプリ（**Mac を所有していないため現時点では Xcode ビルド不可**）
 
-> **現在の主な開発環境**：Windows PC + VS Code Live Server（`Test/` / `ForIphone/`）、iPhone PWA（`ForIphone/`）
+> **現在の主な開発環境**：Windows PC + VS Code Live Server（`Foriphone/`）、iPhone PWA（`Foriphone/`）
 
 ## 実装済み機能
 
@@ -38,18 +37,18 @@
 - **日本時間 AM 2:00** を1日の区切りとする（夜間作業対応）
 - `gameDay()`：UTC+9 から 2h 引いた日付を "今日" として扱う
 
-### 6. 目標達成機能（`ForIphone/` のみ）
+### 6. 目標達成機能（`Foriphone/` のみ）
 - 設定タブの 🏆 ボタンで目標を「達成」としてアーカイブ
 - 達成セレブレーション画面（confetti 150個）＋累計記録を表示
 - 記録はアーカイブとして保持（削除されない）
 - 全目標達成後はウェルカムシートで新目標入力を促す
 
-### 7. 初回起動ウェルカムシート（`ForIphone/` のみ）
+### 7. 初回起動ウェルカムシート（`Foriphone/` のみ）
 - データが空の状態で起動するとシートが自動表示
 - 目標名を入力して「はじめる」でアプリを開始
 - 全目標達成後にも再表示
 
-### 8. PWA 対応（`ForIphone/` のみ）
+### 8. PWA 対応（`Foriphone/` のみ）
 - Safari の「ホーム画面に追加」でアプリとして起動可能
 - Safari の UI（アドレスバー・ナビゲーションバー）が非表示になりフルスクリーン表示
 - `apple-mobile-web-app-capable` / `black-translucent` 設定済み
@@ -60,8 +59,7 @@
 
 | フォルダ | 用途 | 備考 |
 |---------|------|------|
-| `Test/` | Windows PC のブラウザで確認 | 基本機能のみ |
-| `ForIphone/` | iPhone Safari / PWA で確認 | iPhone 最適化済み・機能追加あり |
+| `Foriphone/` | PC ブラウザ・iPhone Safari / PWA で確認 | iPhone 最適化済み・メイン開発フォルダ |
 
 | 技術 | 詳細 |
 |------|------|
@@ -70,7 +68,7 @@
 | CSS3 | ダークテーマ（#1c1f24）、アニメーション |
 | データ | localStorage キー `goaltrack_v2`、v1→v2 マイグレーション対応 |
 
-**`ForIphone/` 固有の追加対応：**
+**`Foriphone/` の iOS 対応：**
 - `viewport-fit=cover` + `env(safe-area-inset-*)` によるノッチ・ホームインジケーター対応
 - 入力欄の font-size 16px 統一（iOS 自動ズーム防止）
 - `overscroll-behavior: none`（オーバースクロール時の白背景防止）
@@ -96,14 +94,10 @@
 
 ```
 GoalTrack/
-├── Test/                          # Web プロトタイプ（主力テスト環境）
-│   ├── index.html                 # UI レイアウト（3タブ、5種モーダル）
-│   ├── app.js                     # 全ビジネスロジック（682行）
+├── Foriphone/                     # メイン開発フォルダ（iPhone Safari / PWA・PC ブラウザ共用）
+│   ├── index.html                 # UI レイアウト（3タブ、モーダル）
+│   ├── app.js                     # 全ビジネスロジック
 │   └── styles.css                 # ダークテーマ + アニメーション
-├── ForIphone/                     # iPhone Safari / PWA 向け（Test とは別管理・機能追加あり）
-│   ├── index.html
-│   ├── app.js
-│   └── styles.css
 ├── iOS/                           # iOS ネイティブアプリ
 │   └── GoalTrack/
 │       ├── App.swift              # エントリーポイント
