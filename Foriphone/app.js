@@ -540,6 +540,7 @@ function updateHome() {
 
 // ─── Check-in ─────────────────────────────────────────────────
 let _pendingDate = null;
+let _openMemoAfterCel = false;
 
 function startCheckin(planId = null) {
   const goal  = activeGoal();
@@ -567,8 +568,12 @@ function startCheckin(planId = null) {
   const hadBefore = Object.keys(goal.checkins).length > 1;
   if (prevStreak === 0 && hadBefore) showRestartToast();
 
-  setTimeout(() => openMemoSheet(), 350);
-  if (getCelData(newStreak)) setTimeout(() => showCel(newStreak), 2200);
+  if (getCelData(newStreak)) {
+    _openMemoAfterCel = true;
+    setTimeout(() => showCel(newStreak), 350);
+  } else {
+    setTimeout(() => openMemoSheet(), 350);
+  }
 }
 
 function openMemoSheet() {
@@ -648,7 +653,13 @@ function showCel(streak) {
   document.getElementById('celebration').classList.add('show');
   spawnConfetti(c.confetti);
 }
-function closeCel() { document.getElementById('celebration').classList.remove('show'); }
+function closeCel() {
+  document.getElementById('celebration').classList.remove('show');
+  if (_openMemoAfterCel) {
+    _openMemoAfterCel = false;
+    setTimeout(() => openMemoSheet(), 300);
+  }
+}
 
 function spawnConfetti(n) {
   const colors = ['#f5a623','#f8c660','#4ecb8d','#ffe082','#e07878','#ffd54f','#6ee7b7'];
